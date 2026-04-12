@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --font-newtown: "NewtownBold", sans-serif;
+  /* Definimos los colores de marca */
+  --color-brand-blue: #2563eb;
+  --color-brand-green: #22c55e;
+}
+
+@font-face {
+  font-family: 'NewtownBold';
+  src: url('./assets/fonts/NEWTOW_B.TTF') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+/* Aplicamos el redondeo XL por defecto a botones y cards */
+@layer components {
+  .btn-pro {
+    @apply rounded-2xl font-newtown italic uppercase transition-all duration-300;
+  }
+  .card-pro {
+    @apply rounded-2xl border-2 border-black bg-white transition-all duration-300;
+  }
+}
+html {
+  scroll-behavior: smooth;
+}
