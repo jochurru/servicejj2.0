@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider } from "firebase/auth"; // <-- Agregamos esto
 
 const firebaseConfig = {
 apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,4 +13,10 @@ measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
+
+// Exportamos lo que ya tenías
 export const db = getFirestore(app);
+
+// Agregamos las herramientas para el Login de Google
+export const auth = getAuth(app);
+export const provider = new GoogleAuthProvider();

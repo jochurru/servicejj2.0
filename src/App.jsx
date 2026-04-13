@@ -11,6 +11,7 @@ import WapButton from "./components/common/WapButton.jsx"; // Botón de WhatsApp
 import ScrollToTop from "./components/common/ScrollToTop.jsx"; // Componente para scroll automático
 import ScrollToTopButton from "./components/common/ScrollToTopButton.jsx"; // Botón para volver arriba
 import TecnicoOnline from "./pages/TecnicoOnline.jsx"; // Nueva página para diagnóstico remoto
+import Login from "./components/common/Login.jsx";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <main className="grow pt-20 md:pt-24">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} /> {/* Ruta para la página de login */}
             <Route path="/terminos" element={<Terminos />} />
             <Route path="/privacidad" element={<Privacidad />} />
             <Route path="/ventas" element={<Ventas />} />
