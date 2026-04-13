@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react'; // Agregamos useEffect
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { serviceApi } from '../services/api'; 
+import { useAuth } from "../hooks/useAuth"; // 1. Importamos el hook
 
 const TecnicoOnline = () => {
-    // 1. Estado inicial sincronizado con el controlador del Backend
+    const { user } = useAuth(); // 2. Consumimos el usuario
+    
     const [formData, setFormData] = useState({
         nombre: '',
         telefono: '',
@@ -12,12 +14,22 @@ const TecnicoOnline = () => {
         equipo: '',
         modelo: '',
         falla: '',
-        fotos: [], // Aquí guardamos objetos { file, preview }
+        fotos: [], 
         aceptaTerminos: false
     });
     const [loading, setLoading] = useState(false);
 
-    // 2. Manejo de archivos y generación de previews
+    // 3. EFECTO: Si hay usuario logueado, autocompletamos nombre y email
+    useEffect(() => {
+        if (user) {
+            setFormData(prev => ({
+                ...prev,
+                nombre: user.displayName || '',
+                email: user.email || ''
+            }));
+        }
+    }, [user]);
+
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
         if (formData.fotos.length + files.length > 5) {
@@ -32,16 +44,13 @@ const TecnicoOnline = () => {
         setFormData({ ...formData, fotos: [...formData.fotos, ...newPhotos] });
     };
 
-    // 3. Envío al Backend usando FormData (Para Cloudinary + Multer)
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            // Creamos el contenedor FormData para archivos binarios
             const dataParaEnviar = new FormData();
 
-            // Adjuntamos campos de texto
             dataParaEnviar.append('nombre', formData.nombre);
             dataParaEnviar.append('telefono', formData.telefono);
             dataParaEnviar.append('email', formData.email);
@@ -49,13 +58,16 @@ const TecnicoOnline = () => {
             dataParaEnviar.append('modelo', formData.modelo);
             dataParaEnviar.append('falla', formData.falla);
             dataParaEnviar.append('aceptaTerminos', formData.aceptaTerminos);
+            
+            // 4. Agregamos el clienteId si existe usuario logueado
+            if (user) {
+                dataParaEnviar.append('clienteId', user.uid);
+            }
 
-            // Adjuntamos las fotos reales (el archivo binario)
             formData.fotos.forEach((foto) => {
                 dataParaEnviar.append('fotos', foto.file); 
             });
 
-            // Petición a la API
             const response = await serviceApi.crearPedido(dataParaEnviar);
             
             Swal.fire({
@@ -65,10 +77,14 @@ const TecnicoOnline = () => {
                 confirmButtonColor: '#2563eb'
             });
 
-            // Limpieza de recursos (previews) y reinicio de estado
             formData.fotos.forEach(foto => URL.revokeObjectURL(foto.preview));
+            
+            // Reiniciamos pero manteniendo los datos del usuario si sigue logueado
             setFormData({
-                nombre: '', telefono: '', email: '', equipo: '', modelo: '', falla: '', fotos: [], aceptaTerminos: false
+                nombre: user ? user.displayName : '',
+                telefono: '', 
+                email: user ? user.email : '', 
+                equipo: '', modelo: '', falla: '', fotos: [], aceptaTerminos: false
             });
             if (e.target) e.target.reset();
 
@@ -87,16 +103,18 @@ const TecnicoOnline = () => {
 
             <form onSubmit={handleSubmit} className="max-w-2xl bg-slate-800 p-6 rounded-3xl shadow-2xl border border-slate-700">
                 
-                {/* Nombre y WhatsApp */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Nombre Completo</label>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                            {user ? 'Nombre (Identificado)' : 'Nombre Completo'}
+                        </label>
                         <input 
                             type="text" 
-                            className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all"
+                            className={`w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all ${user ? 'text-blue-400 italic font-bold' : ''}`}
                             value={formData.nombre}
                             onChange={(e) => setFormData({...formData, nombre: e.target.value})}
                             required
+                            readOnly={!!user} // Si hay usuario, no se puede editar
                         />
                     </div>
                     <div>
@@ -111,19 +129,21 @@ const TecnicoOnline = () => {
                     </div>
                 </div>
 
-                {/* Email */}
                 <div className="mb-4">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Correo Electrónico</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                        {user ? 'Email (Sincronizado)' : 'Correo Electrónico'}
+                    </label>
                     <input 
                         type="email" 
-                        className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all"
+                        className={`w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all ${user ? 'text-blue-400 italic' : ''}`}
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                         required
+                        readOnly={!!user} // Bloqueado si hay sesión
                     />
                 </div>
 
-                {/* Marca y Modelo */}
+                {/* MARCA Y MODELO (Igual que antes) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Equipo (Marca)</label>
@@ -149,7 +169,7 @@ const TecnicoOnline = () => {
                     </div>
                 </div>
 
-                {/* Falla */}
+                {/* DESCRIPCIÓN Y FOTOS (Igual que antes) */}
                 <div className="mb-4">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Descripción de la falla</label>
                     <textarea 
@@ -161,7 +181,6 @@ const TecnicoOnline = () => {
                     ></textarea>
                 </div>
 
-                {/* Fotos con Preview */}
                 <div className="mb-4">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Fotos del equipo (Máx. 5)</label>
                     <input 
@@ -189,27 +208,30 @@ const TecnicoOnline = () => {
                     </div>
                 </div>
 
-                <div className="mb-6 p-4 bg-blue-900/20 border-l-4 border-blue-500 rounded-r-xl">
-                    <p className="text-[12px] md:text-xs text-blue-200 leading-relaxed italic">
-                        <strong>Nota:</strong> El presupuesto enviado por mail es preliminar. 
-                        Aceptamos Mercado Pago y transferencias.
-                    </p>
-                </div>
+                {/* NOTA Y BOTÓN */}
+<div className="mb-6 p-4 bg-blue-900/30 border-l-4 border-blue-500 rounded-r-xl shadow-lg">
+    <p className="text-[12px] md:text-sm text-blue-100 leading-relaxed italic">
+        <strong className="text-blue-400 uppercase tracking-widest block mb-1">Aviso Importante:</strong>
+        El presupuesto enviado por este medio es **preliminar** y basado en la descripción técnica provista. 
+        En reparaciones de alta complejidad o fallas intermitentes, es posible que se requiera **agendar una visita técnica presencial** para un diagnóstico definitivo. 
+        <span className="block mt-2 font-bold text-white">Aceptamos Mercado Pago y Transferencias.</span>
+    </p>
+</div>
 
-                {/* Términos */}
-                <div className="flex items-start gap-3 mb-6 bg-slate-900/50 p-3 rounded-xl">
-                    <input 
-                        type="checkbox" 
-                        id="terminos"
-                        className="mt-1 w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        checked={formData.aceptaTerminos}
-                        onChange={(e) => setFormData({...formData, aceptaTerminos: e.target.checked})}
-                        required
-                    />
-                    <label htmlFor="terminos" className="text-[11px] text-slate-400 leading-tight">
-                        Acepto los <Link to="/terminos" className="text-blue-500 hover:underline">Términos</Link> y las <Link to="/privacidad" className="text-blue-500 hover:underline">Políticas de Privacidad</Link>.
-                    </label>
-                </div>
+{/* Términos y condiciones */}
+<div className="flex items-center gap-3 mb-6 bg-slate-900/50 p-3 rounded-xl">
+    <input 
+        type="checkbox" 
+        id="terminos"
+        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500 cursor-pointer"
+        checked={formData.aceptaTerminos}
+        onChange={(e) => setFormData({...formData, aceptaTerminos: e.target.checked})}
+        required
+    />
+    <label htmlFor="terminos" className="text-[11px] text-slate-400 leading-none cursor-pointer">
+        Acepto los <Link to="/terminos" className="text-blue-500 hover:underline">Términos</Link> y las <Link to="/privacidad" className="text-blue-500 hover:underline">Políticas de Privacidad</Link>.
+    </label>
+</div>
 
                 <button 
                     type="submit" 
