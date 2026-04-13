@@ -4,59 +4,68 @@ import Swal from 'sweetalert2';
 import { serviceApi } from '../services/api'; 
 
 const TecnicoOnline = () => {
-    // 1. Estados actualizados para coincidir con el controlador
+    // 1. Estado inicial sincronizado con el controlador del Backend
     const [formData, setFormData] = useState({
         nombre: '',
         telefono: '',
-        email: '',    
+        email: '',
         equipo: '',
-        modelo: '',   
+        modelo: '',
         falla: '',
-        fotos: [],
+        fotos: [], // Aquí guardamos objetos { file, preview }
         aceptaTerminos: false
     });
     const [loading, setLoading] = useState(false);
 
-    // 2. Manejo de archivos (Sin cambios)
+    // 2. Manejo de archivos y generación de previews
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
         if (formData.fotos.length + files.length > 5) {
             return Swal.fire('¡Ups!', 'El máximo es de 5 fotos.', 'warning');
         }
+        
         const newPhotos = files.map(file => ({
             file,
             preview: URL.createObjectURL(file)
         }));
+        
         setFormData({ ...formData, fotos: [...formData.fotos, ...newPhotos] });
     };
 
-    // 3. Envío al Backend sincronizado con el controlador de pedidos
+    // 3. Envío al Backend usando FormData (Para Cloudinary + Multer)
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            // Preparamos el payload exactamente como lo desestructura el controlador
-            const pedidoParaAPI = {
-                nombre: formData.nombre,
-                telefono: formData.telefono,
-                email: formData.email,
-                equipo: formData.equipo,
-                modelo: formData.modelo,
-                falla: formData.falla,
-                aceptaTerminos: formData.aceptaTerminos
-            };
+            // Creamos el contenedor FormData para archivos binarios
+            const dataParaEnviar = new FormData();
 
-            const response = await serviceApi.crearPedido(pedidoParaAPI);
+            // Adjuntamos campos de texto
+            dataParaEnviar.append('nombre', formData.nombre);
+            dataParaEnviar.append('telefono', formData.telefono);
+            dataParaEnviar.append('email', formData.email);
+            dataParaEnviar.append('equipo', formData.equipo);
+            dataParaEnviar.append('modelo', formData.modelo);
+            dataParaEnviar.append('falla', formData.falla);
+            dataParaEnviar.append('aceptaTerminos', formData.aceptaTerminos);
+
+            // Adjuntamos las fotos reales (el archivo binario)
+            formData.fotos.forEach((foto) => {
+                dataParaEnviar.append('fotos', foto.file); 
+            });
+
+            // Petición a la API
+            const response = await serviceApi.crearPedido(dataParaEnviar);
             
             Swal.fire({
-                title: '¡Enviado!',
-                text: `Tu número de pedido es: ${response.id}`,
+                title: '¡Pedido Recibido!',
+                text: `Tu ID de seguimiento es: ${response.id}`,
                 icon: 'success',
                 confirmButtonColor: '#2563eb'
             });
 
-            // Limpieza de memoria y estado
+            // Limpieza de recursos (previews) y reinicio de estado
             formData.fotos.forEach(foto => URL.revokeObjectURL(foto.preview));
             setFormData({
                 nombre: '', telefono: '', email: '', equipo: '', modelo: '', falla: '', fotos: [], aceptaTerminos: false
@@ -64,7 +73,7 @@ const TecnicoOnline = () => {
             if (e.target) e.target.reset();
 
         } catch (error) {
-            console.error("Error al conectar con el Backend:", error);
+            console.error("Error en el envío:", error);
             Swal.fire('Error', error.message || 'No pudimos procesar tu solicitud.', 'error');
         } finally {
             setLoading(false);
@@ -73,7 +82,7 @@ const TecnicoOnline = () => {
 
     return (
         <div className="min-h-screen bg-slate-900 text-white p-8 pt-24">
-            <h1 className="text-3xl font-newtown text-blue-500 mb-4 uppercase italic">Técnico Online</h1>
+            <h1 className="text-3xl font-newtown text-blue-500 mb-4 uppercase italic tracking-wider">Técnico Online</h1>
             <p className="mb-8 text-slate-400 font-medium">Diagnóstico remoto profesional para Service JJ.</p>
 
             <form onSubmit={handleSubmit} className="max-w-2xl bg-slate-800 p-6 rounded-3xl shadow-2xl border border-slate-700">
@@ -102,9 +111,9 @@ const TecnicoOnline = () => {
                     </div>
                 </div>
 
-                {/* Email (Nuevo Input requerido por controlador) */}
+                {/* Email */}
                 <div className="mb-4">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Correo Electrónico (Para recibir el presupuesto)</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Correo Electrónico</label>
                     <input 
                         type="email" 
                         className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all"
@@ -114,7 +123,7 @@ const TecnicoOnline = () => {
                     />
                 </div>
 
-                {/* Equipo y Modelo (Separados para el ID Relacional) */}
+                {/* Marca y Modelo */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Equipo (Marca)</label>
@@ -131,7 +140,7 @@ const TecnicoOnline = () => {
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Modelo Exacto</label>
                         <input 
                             type="text" 
-                            placeholder="Ej: QLED 55' 4K"
+                            placeholder="Ej: UN55NU7100"
                             className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all"
                             value={formData.modelo}
                             onChange={(e) => setFormData({...formData, modelo: e.target.value})}
@@ -140,7 +149,7 @@ const TecnicoOnline = () => {
                     </div>
                 </div>
 
-                {/* Descripción de la falla */}
+                {/* Falla */}
                 <div className="mb-4">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Descripción de la falla</label>
                     <textarea 
@@ -152,7 +161,7 @@ const TecnicoOnline = () => {
                     ></textarea>
                 </div>
 
-                {/* Fotos del equipo */}
+                {/* Fotos con Preview */}
                 <div className="mb-4">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Fotos del equipo (Máx. 5)</label>
                     <input 
@@ -173,7 +182,7 @@ const TecnicoOnline = () => {
                                         const nuevas = formData.fotos.filter((_, i) => i !== index);
                                         setFormData({...formData, fotos: nuevas});
                                     }}
-                                    className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center"
+                                    className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center hover:bg-red-500 transition-colors"
                                 >✕</button>
                             </div>
                         ))}
@@ -182,12 +191,12 @@ const TecnicoOnline = () => {
 
                 <div className="mb-6 p-4 bg-blue-900/20 border-l-4 border-blue-500 rounded-r-xl">
                     <p className="text-[12px] md:text-xs text-blue-200 leading-relaxed italic">
-                        <strong>Nota importante:</strong> El diagnóstico remoto es una orientación preliminar.
-                        Aceptamos pagos con tarjeta y transferencias.
+                        <strong>Nota:</strong> El presupuesto enviado por mail es preliminar. 
+                        Aceptamos Mercado Pago y transferencias.
                     </p>
                 </div>
 
-                {/* Términos y Condiciones */}
+                {/* Términos */}
                 <div className="flex items-start gap-3 mb-6 bg-slate-900/50 p-3 rounded-xl">
                     <input 
                         type="checkbox" 
