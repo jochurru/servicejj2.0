@@ -1,82 +1,84 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-// 1. Importamos la conexión y las herramientas de Firestore
-import { db } from '../services/firebaseConfig';
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { serviceApi } from '../services/api'; 
 
 const TecnicoOnline = () => {
+    // 1. Estados actualizados para coincidir con el controlador
     const [formData, setFormData] = useState({
         nombre: '',
         telefono: '',
+        email: '',    
         equipo: '',
+        modelo: '',   
         falla: '',
         fotos: [],
         aceptaTerminos: false
     });
+    const [loading, setLoading] = useState(false);
 
+    // 2. Manejo de archivos (Sin cambios)
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
         if (formData.fotos.length + files.length > 5) {
-            return Swal.fire('¡Ups!', 'El máximo es de 5 fotos por diagnóstico.', 'warning');
+            return Swal.fire('¡Ups!', 'El máximo es de 5 fotos.', 'warning');
         }
-
         const newPhotos = files.map(file => ({
             file,
             preview: URL.createObjectURL(file)
         }));
-
         setFormData({ ...formData, fotos: [...formData.fotos, ...newPhotos] });
     };
 
+    // 3. Envío al Backend sincronizado con el controlador de pedidos
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setLoading(true);
+
         try {
-            // 2. Preparamos el objeto para Firestore (Payload limpio)
-            const pedidoParaFirebase = {
+            // Preparamos el payload exactamente como lo desestructura el controlador
+            const pedidoParaAPI = {
                 nombre: formData.nombre,
                 telefono: formData.telefono,
+                email: formData.email,
                 equipo: formData.equipo,
+                modelo: formData.modelo,
                 falla: formData.falla,
-                cantidadFotos: formData.fotos.length,
-                aceptaTerminos: formData.aceptaTerminos,
-                fechaCreacion: serverTimestamp(), // Marca de tiempo del servidor
-                estado: "pendiente" // Un plus para que JJ pueda gestionarlo después
+                aceptaTerminos: formData.aceptaTerminos
             };
 
-            // 3. Guardamos en la colección 'pedidos' de Firestore
-            const docRef = await addDoc(collection(db, "pedidos"), pedidoParaFirebase);
-            console.log("Documento escrito con ID: ", docRef.id);
-
-            Swal.fire('¡Enviado!', 'El técnico revisará tu caso en minutos.', 'success');
+            const response = await serviceApi.crearPedido(pedidoParaAPI);
             
-            // 4. Limpieza de memoria y estado
-            formData.fotos.forEach(foto => URL.revokeObjectURL(foto.preview));
-
-            setFormData({
-                nombre: '', 
-                telefono: '', 
-                equipo: '', 
-                falla: '', 
-                fotos: [], 
-                aceptaTerminos: false
+            Swal.fire({
+                title: '¡Enviado!',
+                text: `Tu número de pedido es: ${response.id}`,
+                icon: 'success',
+                confirmButtonColor: '#2563eb'
             });
 
-            e.target.reset();
+            // Limpieza de memoria y estado
+            formData.fotos.forEach(foto => URL.revokeObjectURL(foto.preview));
+            setFormData({
+                nombre: '', telefono: '', email: '', equipo: '', modelo: '', falla: '', fotos: [], aceptaTerminos: false
+            });
+            if (e.target) e.target.reset();
 
         } catch (error) {
-            console.error("Error al guardar en Firebase:", error); 
-            Swal.fire('Error', 'No pudimos procesar tu solicitud. Revisa la conexión.', 'error');
+            console.error("Error al conectar con el Backend:", error);
+            Swal.fire('Error', error.message || 'No pudimos procesar tu solicitud.', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div className="min-h-screen bg-slate-900 text-white p-8 pt-24">
             <h1 className="text-3xl font-newtown text-blue-500 mb-4 uppercase italic">Técnico Online</h1>
-            <p className="mb-8 text-slate-400 font-medium">Diagnóstico remoto gratuito para Service JJ.</p>
+            <p className="mb-8 text-slate-400 font-medium">Diagnóstico remoto profesional para Service JJ.</p>
 
             <form onSubmit={handleSubmit} className="max-w-2xl bg-slate-800 p-6 rounded-3xl shadow-2xl border border-slate-700">
                 
+                {/* Nombre y WhatsApp */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Nombre Completo</label>
@@ -100,17 +102,45 @@ const TecnicoOnline = () => {
                     </div>
                 </div>
 
+                {/* Email (Nuevo Input requerido por controlador) */}
                 <div className="mb-4">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Equipo (Marca/Modelo)</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Correo Electrónico (Para recibir el presupuesto)</label>
                     <input 
-                        type="text" 
+                        type="email" 
                         className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all"
-                        value={formData.equipo}
-                        onChange={(e) => setFormData({...formData, equipo: e.target.value})}
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
                         required
                     />
                 </div>
 
+                {/* Equipo y Modelo (Separados para el ID Relacional) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Equipo (Marca)</label>
+                        <input 
+                            type="text" 
+                            placeholder="Ej: Samsung"
+                            className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all"
+                            value={formData.equipo}
+                            onChange={(e) => setFormData({...formData, equipo: e.target.value})}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Modelo Exacto</label>
+                        <input 
+                            type="text" 
+                            placeholder="Ej: QLED 55' 4K"
+                            className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all"
+                            value={formData.modelo}
+                            onChange={(e) => setFormData({...formData, modelo: e.target.value})}
+                            required
+                        />
+                    </div>
+                </div>
+
+                {/* Descripción de la falla */}
                 <div className="mb-4">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Descripción de la falla</label>
                     <textarea 
@@ -122,6 +152,7 @@ const TecnicoOnline = () => {
                     ></textarea>
                 </div>
 
+                {/* Fotos del equipo */}
                 <div className="mb-4">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Fotos del equipo (Máx. 5)</label>
                     <input 
@@ -151,12 +182,12 @@ const TecnicoOnline = () => {
 
                 <div className="mb-6 p-4 bg-blue-900/20 border-l-4 border-blue-500 rounded-r-xl">
                     <p className="text-[12px] md:text-xs text-blue-200 leading-relaxed italic">
-                        <strong>Nota importante:</strong> El diagnóstico remoto es una orientación preliminar 
-                        basada en la información provista. Fallas complejas requieren inspección presencial. 
-                        El valor de la visita técnica se informará previamente y será bonificado si se aprueba la reparación.
+                        <strong>Nota importante:</strong> El diagnóstico remoto es una orientación preliminar.
+                        Aceptamos pagos con tarjeta y transferencias.
                     </p>
                 </div>
 
+                {/* Términos y Condiciones */}
                 <div className="flex items-start gap-3 mb-6 bg-slate-900/50 p-3 rounded-xl">
                     <input 
                         type="checkbox" 
@@ -167,12 +198,16 @@ const TecnicoOnline = () => {
                         required
                     />
                     <label htmlFor="terminos" className="text-[11px] text-slate-400 leading-tight">
-                        Acepto los <Link to="/terminos" className="text-blue-500 hover:underline">Términos</Link> y las <Link to="/privacidad" className="text-blue-500 hover:underline">Políticas de Privacidad</Link>. Entiendo que el presupuesto es preliminar.
+                        Acepto los <Link to="/terminos" className="text-blue-500 hover:underline">Términos</Link> y las <Link to="/privacidad" className="text-blue-500 hover:underline">Políticas de Privacidad</Link>.
                     </label>
                 </div>
 
-                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-newtown italic uppercase tracking-widest transition-all hover:scale-[1.02]">
-                    Obtener Presupuesto Express
+                <button 
+                    type="submit" 
+                    disabled={loading}
+                    className={`w-full py-4 rounded-xl font-newtown italic uppercase tracking-widest transition-all ${loading ? 'bg-slate-700 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 hover:scale-[1.02]'}`}
+                >
+                    {loading ? 'Procesando diagnóstico...' : 'Obtener Presupuesto Express'}
                 </button>
             </form>
         </div>
