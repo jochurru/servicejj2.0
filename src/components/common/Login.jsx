@@ -1,8 +1,9 @@
 import React from 'react';
-import { auth, provider } from "../../services/firebaseConfig";
+import { auth, provider, db } from "../../services/firebaseConfig"; // 1. Agregamos db
 import { signInWithPopup } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { FcGoogle } from "react-icons/fc"; // Si tenés react-icons instalado, si no usamos la imagen de antes
+// 2. Importamos las herramientas de Firestore
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const Login = () => {
 const navigate = useNavigate();
@@ -10,7 +11,33 @@ const navigate = useNavigate();
 const iniciarSesion = async () => {
 try {
     const result = await signInWithPopup(auth, provider);
-    console.log("¡Éxito!", result.user.displayName);
+    const user = result.user;
+    
+    console.log("¡Éxito!", user.displayName);
+
+    // --- 🚀 LÓGICA DE FIRESTORE ---
+    // Creamos la referencia al usuario usando su ID único de Google
+    const userRef = doc(db, "usuarios", user.uid);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+    // Si no existe, lo creamos (Primer Login)
+    await setDoc(userRef, {
+        nombre: user.displayName,
+        email: user.email,
+        foto: user.photoURL,
+        rol: "cliente", // Por defecto es cliente
+        fechaRegistro: serverTimestamp(),
+        ultimoAcceso: serverTimestamp()
+    });
+    console.log("Nuevo usuario registrado en Firestore");
+    } else {
+    // Si ya existe, solo actualizamos la fecha de último acceso
+    await setDoc(userRef, { ultimoAcceso: serverTimestamp() }, { merge: true });
+    console.log("Usuario ya existente, acceso actualizado");
+    }
+    // -------------------------------
+
     navigate("/"); 
 } catch (error) {
     console.error("Error al autenticar:", error.message);
@@ -20,10 +47,8 @@ try {
 return (
 <div className="flex items-center justify-center min-h-[60vh] px-4">
     <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-    
-    {/* Encabezado del Card */}
     <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">
+        <h2 className="text-3xl font-bold text-slate-900 mb-2 font-newtown italic uppercase">
         Bienvenido
         </h2>
         <p className="text-slate-500">
@@ -31,10 +56,9 @@ return (
         </p>
     </div>
 
-    {/* Botón de Google Estilizado */}
     <button 
         onClick={iniciarSesion}
-        className="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700 font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-sm active:scale-95"
+        className="w-full flex items-center justify-center gap-3 bg-white border-2 border-black hover:border-blue-600 hover:bg-slate-50 text-black font-newtown italic uppercase py-3 px-4 transition-all duration-300 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1 active:translate-y-1"
     >
         <img 
         src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
@@ -44,14 +68,12 @@ return (
         <span>Continuar con Google</span>
     </button>
 
-    {/* Pie del Card */}
     <div className="mt-8 pt-6 border-t border-slate-100 text-center">
         <p className="text-xs text-slate-400 leading-relaxed">
         Al ingresar, aceptás nuestros <br />
-        <a href="/terminos" className="text-blue-500 hover:underline">Términos de Servicio</a> y <a href="/privacidad" className="text-blue-500 hover:underline">Política de Privacidad</a>.
+        <a href="/terminos" className="text-blue-500 hover:underline font-bold">Términos de Servicio</a> y <a href="/privacidad" className="text-blue-500 hover:underline font-bold">Política de Privacidad</a>.
         </p>
     </div>
-
     </div>
 </div>
 );

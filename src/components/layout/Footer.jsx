@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom';
 import { Phone, Mail, MapPin, ShieldCheck } from 'lucide-react';
 // Iconos de marca (React Icons - Font Awesome)
 import { FaInstagram, FaFacebookF } from 'react-icons/fa';
+import { useAuth } from "../../hooks/useAuth";
 
 const Footer = () => {
+const user = useAuth().user; // Para mostrar enlace "Mis Reparaciones" solo si hay usuario
 const currentYear = new Date().getFullYear();
+
 
 return (
 <footer className="bg-slate-900 text-white pt-16 pb-8 px-4">
@@ -44,16 +47,36 @@ return (
         </div>
     </div>
 
-    {/* COLUMNA 2: NAVEGACIÓN RÁPIDA */}
-    <div>
-        <h3 className="font-newtown text-lg italic uppercase mb-6 text-blue-500 tracking-tight">Secciones</h3>
-        <ul className="flex flex-col gap-3 text-slate-300 text-sm">
-        <li><Link to="/" className="hover:text-white transition-colors">Inicio</Link></li>
+{/* COLUMNA 2: NAVEGACIÓN RÁPIDA */}
+<div>
+    <h3 className="font-newtown text-lg italic uppercase mb-6 text-blue-500 tracking-tight">Secciones</h3>
+    <ul className="flex flex-col gap-3 text-slate-300 text-sm">
+        <li>
+            <Link 
+                to="/" 
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
+                className="hover:text-white transition-colors"
+            >
+                Inicio
+            </Link>
+        </li>
         <li><Link to="/ventas" className="hover:text-white transition-colors">Ventas</Link></li>
         <li><Link to="/servicio-tecnico" className="hover:text-white transition-colors">Servicio Técnico</Link></li>
         <li><Link to="/climatizacion" className="hover:text-white transition-colors">Climatización</Link></li>
-        </ul>
-    </div>
+        
+        {/* ✨ SOLO SE MUESTRA SI HAY USUARIO */}
+        {user && (
+            <li>
+                <Link 
+                    to="/mis-pedidos" 
+                    className="hover:text-white transition-colors italic text-blue-400 font-medium"
+                >
+                    Mis Reparaciones
+                </Link>
+            </li>
+        )}
+    </ul>
+</div>
 
     {/* COLUMNA 3: CONTACTO DIRECTO */}
     <div>
@@ -75,7 +98,7 @@ return (
         <li className="flex items-start gap-3">
             <MapPin size={16} className="text-blue-500 mt-1" /> 
             <a 
-            href="https://www.google.com/maps/search/?api=1&query=Av.+Angel+Gallardo+1049,+CABA" 
+            href="https://maps.app.goo.gl/WGSrYMUHPNFZjP358" 
             target="_blank" 
             rel="noopener noreferrer"
             className="hover:text-white transition-colors leading-tight"

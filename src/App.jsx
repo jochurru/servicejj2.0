@@ -12,6 +12,7 @@ import ScrollToTop from "./components/common/ScrollToTop.jsx"; // Componente par
 import ScrollToTopButton from "./components/common/ScrollToTopButton.jsx"; // Botón para volver arriba
 import TecnicoOnline from "./pages/TecnicoOnline.jsx"; // Nueva página para diagnóstico remoto
 import Login from "./components/common/Login.jsx";
+import MisPedidos from "./pages/MisPedidos.jsx";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} /> {/* Ruta para la página de login */}
+            <Route path="/mis-pedidos" element={<MisPedidos />} /> {/* Ruta para la página de mis pedidos */}
             <Route path="/terminos" element={<Terminos />} />
             <Route path="/privacidad" element={<Privacidad />} />
             <Route path="/ventas" element={<Ventas />} />

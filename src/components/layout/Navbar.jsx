@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Hammer, AirVent, ShoppingBag, Menu, X, UserCircle, LogOut } from 'lucide-react'; // Agregamos LogOut
+import { Hammer, AirVent, ShoppingBag, Menu, X, UserCircle, LogOut } from 'lucide-react';
 import logojj from '../../assets/Logo.webp';
-import { useAuth } from "../../hooks/useAuth"; // 1. IMPORTAMOS EL HOOK
+import { useAuth } from "../../hooks/useAuth";
 
 const Navbar = () => {
-const { user, logout } = useAuth(); // 2. CONSUMIMOS EL USUARIO Y LOGOUT
+const { user, logout } = useAuth();
 const [isOpen, setIsOpen] = useState(false);
 const [isVisible, setIsVisible] = useState(true);
 const [lastScrollY, setLastScrollY] = useState(0);
@@ -14,12 +14,12 @@ const closeMenu = () => setIsOpen(false);
 
 useEffect(() => {
 const controlNavbar = () => {
-    if (window.scrollY > lastScrollY && window.scrollY > 100) { 
-    setIsVisible(false);
-    } else {
-    setIsVisible(true);
-    }
-    setLastScrollY(window.scrollY);
+if (window.scrollY > lastScrollY && window.scrollY > 100) {
+setIsVisible(false);
+} else {
+setIsVisible(true);
+}
+setLastScrollY(window.scrollY);
 };
 window.addEventListener('scroll', controlNavbar);
 return () => window.removeEventListener('scroll', controlNavbar);
@@ -27,90 +27,96 @@ return () => window.removeEventListener('scroll', controlNavbar);
 
 return (
 <nav className={`fixed top-0 w-full bg-white border-b-4 border-black z-50 shadow-sm transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-    <div className="max-w-7xl mx-auto px-4 h-24 flex items-center">
-    
-    {/* 1. AREA LOGO */}
-    <div className="flex-1 flex justify-start">
-        <Link 
-        to="/" 
-        onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); closeMenu(); }}
-        className="flex items-center gap-3 group"
-        >
-        <img src={logojj} alt="Service JJ Logo" className="h-14 md:h-16 w-auto object-contain transition-transform group-hover:scale-105" />
-        <div className="flex flex-col leading-none">
-            <span className="font-newtown text-2xl md:text-3xl italic uppercase tracking-tighter text-black">
-            SERVICE <span className="text-black">JJ</span>
-            </span>
-            <span className="font-sans font-medium text-gray-500 uppercase text-[9px] tracking-widest -mt-1">
-            Ventas y Servicios Integrales
-            </span>
-        </div>
-        </Link>
+<div className="max-w-7xl mx-auto px-4 h-24 flex items-center">
+
+{/* 1. AREA LOGO */}
+<div className="flex-1 flex justify-start">
+<Link
+to="/"
+onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); closeMenu(); }}
+className="flex items-center gap-3 group"
+>
+<img src={logojj} alt="Service JJ Logo" className="h-14 md:h-16 w-auto object-contain transition-transform group-hover:scale-105" />
+<div className="flex flex-col leading-none">
+    <span className="font-newtown text-2xl md:text-3xl italic uppercase tracking-tighter text-black">
+    SERVICE <span className="text-black">JJ</span>
+    </span>
+    <span className="font-sans font-medium text-gray-500 uppercase text-[9px] tracking-widest -mt-1">
+    Ventas y Servicios Integrales
+    </span>
+</div>
+</Link>
+</div>
+
+{/* 2. LINKS AL CENTRO (Eje central optimizado) */}
+<div className="hidden lg:flex items-center justify-center gap-6"> 
+<Link to="/ventas" className="font-newtown italic uppercase text-lg flex items-center gap-4 text-black hover:text-emerald-500 transition-colors whitespace-nowrap">
+<ShoppingBag size={24} /> <span>Ventas</span>
+</Link>
+<Link to="/servicio-tecnico" className="font-newtown italic uppercase text-lg flex items-center gap-4 text-black hover:text-blue-600 transition-colors whitespace-nowrap">
+<Hammer size={24} /> <span>Servicio Técnico</span>
+</Link>
+<Link to="/climatizacion" className="font-newtown italic uppercase text-lg flex items-center gap-2 text-black hover:text-orange-500 transition-colors whitespace-nowrap">
+<AirVent size={24} /> <span>Climatización</span>
+</Link>
+</div>
+
+{/* 3. AREA USUARIO (Lado derecho ordenado) */}
+<div className="flex-1 flex justify-end items-right gap-4">
+{user ? (
+<div className="flex items-center gap-2">
+
+{/* Mis Reparaciones - Texto más chico (sm) */}
+    <Link
+    to="/mis-pedidos"
+    className="font-newtown italic uppercase text-wrap text-blue-700 hover:text-blue-900 transition-all whitespace-nowrap border-b-2 border-blue-200"
+    >
+    Mis Reparaciones
+    </Link>
+<div className="h-10 w-0.5 bg-black/10"></div>
+
+    <div className="flex flex-col items-end leading-none">
+    <span className="font-newtown italic text-[10px] text-gray-400 uppercase">Hola,</span>
+    <span className="font-newtown italic text-xl uppercase text-blue-600">
+        {user.displayName?.split(' ')[0]}
+    </span>
     </div>
 
-    {/* 2. LINKS AL CENTRO */}
-    <div className="hidden md:flex items-center justify-center gap-8">
-        <Link to="/ventas" className="font-newtown italic uppercase text-lg flex items-center gap-2 text-black hover:text-emerald-500 transition-colors">
-        <ShoppingBag size={20} /> <span>Ventas</span>
-        </Link>
-        <Link to="/servicio-tecnico" className="font-newtown italic uppercase text-lg flex items-center gap-2 text-black hover:text-blue-600 transition-colors">
-        <Hammer size={20} /> <span>Servicio Técnico</span>
-        </Link>
-        <Link to="/climatizacion" className="font-newtown italic uppercase text-lg flex items-center gap-2 text-black hover:text-orange-500 transition-colors">
-        <AirVent size={20} /> <span>Climatización</span>
-        </Link>
-    </div>
+    <button onClick={logout} className="text-red-500 hover:scale-110 transition-transform">
+    <LogOut size={24} />
+    </button>
+</div>
+) : (
+<Link to="/login" className="font-newtown italic uppercase flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-all text-black">
+    <UserCircle size={24} />
+    <span>Ingresar</span>
+</Link>
+)}
+</div>
 
-    {/* 3. AREA CONTACTO Y LOGIN DINÁMICO */}
-    <div className="flex-1 flex justify-end items-center gap-3">
-        
-        {/* LÓGICA DE USUARIO */}
-        {user ? (
-        <div className="hidden md:flex items-center gap-4">
-            <div className="flex flex-col items-end">
-            <span className="font-newtown italic text-sm text-black">Hola,</span>
-            <span className="font-newtown italic text-lg uppercase text-blue-600 leading-none">
-                {user.displayName?.split(' ')[0]}
-            </span>
-            </div>
-            <button 
-            onClick={logout}
-            className="p-2 hover:bg-red-50 text-red-500 rounded-full transition-colors"
-            title="Cerrar Sesión"
-            >
-            <LogOut size={20} />
-            </button>
-        </div>
-        ) : (
-        <Link 
-            to="/login" 
-            className="hidden md:flex font-newtown italic uppercase items-center gap-2 border-2 border-black px-4 py-2 hover:bg-slate-100 transition-all text-black"
-        >
-            <UserCircle size={20} />
-            <span>Ingresar</span>
-        </Link>
-        )}
-
-        <a href="#contacto-seccion" className="hidden md:inline-block font-newtown italic uppercase bg-black text-white px-6 py-2 border-b-4 border-gray-600 hover:border-blue-500 active:border-b-0 active:translate-y-1 transition-all">
-        Contacto
-        </a>
-
-        <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-black p-2">
+        {/* BOTÓN HAMBURGUESA */}
+        <button onClick={() => setIsOpen(!isOpen)} className="lg:hidden text-black p-2">
         {isOpen ? <X size={32} /> : <Menu size={32} />}
         </button>
     </div>
-    </div>
+
 
     {/* MENÚ MÓVIL DINÁMICO */}
-    <div className={`md:hidden bg-white border-b-4 border-black transition-all duration-300 overflow-hidden ${isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
+    <div className={`lg:hidden bg-white border-b-4 border-black transition-all duration-300 overflow-hidden ${isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
     <div className="flex flex-col p-6 gap-6">
-        
         {user ? (
-        <div className="flex items-center justify-between border-b-2 border-slate-100 pb-4">
-            <span className="font-newtown italic uppercase text-2xl text-blue-600">
+        <div className="flex flex-col gap-4 border-b-2 border-slate-100 pb-4">
+            <span className="font-newtown italic uppercase text-2xl text-blue-600 leading-none">
             Hola, {user.displayName?.split(' ')[0]}
             </span>
-            <button onClick={logout} className="flex items-center gap-2 text-red-500 font-bold">
+            <Link
+            to="/mis-pedidos"
+            onClick={closeMenu}
+            className="font-newtown italic uppercase text-xl text-black flex items-center gap-2"
+            >
+            <Hammer size={20} className="text-blue-600" /> Mis Reparaciones
+            </Link>
+            <button onClick={logout} className="flex items-center gap-2 text-red-500 font-bold uppercase text-sm">
             SALIR <LogOut size={20} />
             </button>
         </div>
@@ -120,14 +126,14 @@ return (
         </Link>
         )}
 
-        <Link to="/ventas" onClick={closeMenu} className="font-newtown italic uppercase text-2xl flex items-center gap-4 text-black text-emerald-500">
-            Ventas
+        <Link to="/ventas" onClick={closeMenu} className="font-newtown italic uppercase text-2xl flex items-center gap-4 text-emerald-500">
+        <ShoppingBag size={24} /> Ventas
         </Link>
-        <Link to="/servicio-tecnico" onClick={closeMenu} className="font-newtown italic uppercase text-2xl flex items-center gap-4 text-black text-blue-600">
-            Servicio Técnico
+        <Link to="/servicio-tecnico" onClick={closeMenu} className="font-newtown italic uppercase text-2xl flex items-center gap-4 text-blue-600">
+        <Hammer size={24} /> Servicio Técnico
         </Link>
-        <Link to="/climatizacion" onClick={closeMenu} className="font-newtown italic uppercase text-2xl flex items-center gap-4 text-black text-orange-500">
-            Climatización
+        <Link to="/climatizacion" onClick={closeMenu} className="font-newtown italic uppercase text-2xl flex items-center gap-4 text-orange-500">
+        <AirVent size={24} /> Climatización
         </Link>
         <a href="#contacto-seccion" onClick={closeMenu} className="font-newtown italic uppercase bg-black text-white text-center py-4 text-xl border-b-4 border-gray-600">
         Contacto
