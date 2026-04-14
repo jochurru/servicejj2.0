@@ -1,8 +1,7 @@
 import React from 'react';
-import { auth, provider, db } from "../../services/firebaseConfig"; // 1. Agregamos db
+import { auth, provider, db } from "../../services/firebaseConfig";
 import { signInWithPopup } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-// 2. Importamos las herramientas de Firestore
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const Login = () => {
@@ -13,34 +12,26 @@ try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
     
-    console.log("¡Éxito!", user.displayName);
-
-    // --- 🚀 LÓGICA DE FIRESTORE ---
-    // Creamos la referencia al usuario usando su ID único de Google
     const userRef = doc(db, "usuarios", user.uid);
     const userDoc = await getDoc(userRef);
 
     if (!userDoc.exists()) {
-    // Si no existe, lo creamos (Primer Login)
     await setDoc(userRef, {
         nombre: user.displayName,
         email: user.email,
         foto: user.photoURL,
-        rol: "cliente", // Por defecto es cliente
+        rol: "cliente", 
         fechaRegistro: serverTimestamp(),
         ultimoAcceso: serverTimestamp()
     });
-    console.log("Nuevo usuario registrado en Firestore");
     } else {
-    // Si ya existe, solo actualizamos la fecha de último acceso
     await setDoc(userRef, { ultimoAcceso: serverTimestamp() }, { merge: true });
-    console.log("Usuario ya existente, acceso actualizado");
     }
-    // -------------------------------
 
     navigate("/"); 
 } catch (error) {
-    console.error("Error al autenticar:", error.message);
+    console.error("Error al iniciar sesión:", error);
+    alert("Hubo un problema al iniciar sesión. Por favor, intentá de nuevo.");
 }
 };
 
