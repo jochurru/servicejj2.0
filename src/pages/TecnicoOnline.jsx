@@ -44,13 +44,14 @@ const TecnicoOnline = () => {
         setFormData({ ...formData, fotos: [...formData.fotos, ...newPhotos] });
     };
 
-    const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
             const dataParaEnviar = new FormData();
 
+            // 1. Cargamos los datos básicos
             dataParaEnviar.append('nombre', formData.nombre);
             dataParaEnviar.append('telefono', formData.telefono);
             dataParaEnviar.append('email', formData.email);
@@ -59,38 +60,47 @@ const TecnicoOnline = () => {
             dataParaEnviar.append('falla', formData.falla);
             dataParaEnviar.append('aceptaTerminos', formData.aceptaTerminos);
             
-            // 4. Agregamos el clienteId si existe usuario logueado
+            // 2. Si hay usuario logueado, mandamos su ID de Google
             if (user) {
                 dataParaEnviar.append('clienteId', user.uid);
+            } else {
+                dataParaEnviar.append('clienteId', "null"); // Importante para el "Reclamo" posterior
             }
 
+            // 3. Mandamos las fotos (el Backend espera el campo 'fotos')
             formData.fotos.forEach((foto) => {
                 dataParaEnviar.append('fotos', foto.file); 
             });
 
-            const response = await serviceApi.crearPedido(dataParaEnviar);
+            // --- 🚀 CAMBIO CLAVE AQUÍ ---
+            // Usamos 'createPedido' (nombre exacto en api.js)
+            const response = await serviceApi.createPedido(dataParaEnviar);
             
-            Swal.fire({
-                title: '¡Pedido Recibido!',
-                text: `Tu ID de seguimiento es: ${response.id}`,
-                icon: 'success',
-                confirmButtonColor: '#2563eb'
-            });
+            if (response.success) {
+                Swal.fire({
+                    title: '¡Pedido Recibido!',
+                    // Usamos 'idCorto' para que el cliente vea el ticket SJ-XXXX
+                    text: `Tu código de seguimiento es: ${response.idCorto}`, 
+                    icon: 'success',
+                    confirmButtonColor: '#2563eb'
+                });
 
-            formData.fotos.forEach(foto => URL.revokeObjectURL(foto.preview));
-            
-            // Reiniciamos pero manteniendo los datos del usuario si sigue logueado
-            setFormData({
-                nombre: user ? user.displayName : '',
-                telefono: '', 
-                email: user ? user.email : '', 
-                equipo: '', modelo: '', falla: '', fotos: [], aceptaTerminos: false
-            });
-            if (e.target) e.target.reset();
+                // Limpieza de memoria de las fotos
+                formData.fotos.forEach(foto => URL.revokeObjectURL(foto.preview));
+                
+                // Reiniciamos el formulario
+                setFormData({
+                    nombre: user ? user.displayName : '',
+                    telefono: '', 
+                    email: user ? user.email : '', 
+                    equipo: '', modelo: '', falla: '', fotos: [], aceptaTerminos: false
+                });
+                if (e.target) e.target.reset();
+            }
 
         } catch (error) {
             console.error("Error en el envío:", error);
-            Swal.fire('Error', error.message || 'No pudimos procesar tu solicitud.', 'error');
+            Swal.fire('Error', 'No pudimos conectar con el servidor. Revisa tu conexión.', 'error');
         } finally {
             setLoading(false);
         }
