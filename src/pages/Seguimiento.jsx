@@ -13,34 +13,29 @@ const Seguimiento = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-    if (!idCorto) return;
+    useEffect(() => {
+        if (!idCorto) return;
 
-    const fetchSeguimiento = async () => {
-        // 🚀 EL SECRETO: Procesamos el ID ANTES de entrar al try/catch
-        let ticketFinal = idCorto.toUpperCase().trim();
-        if (!ticketFinal.startsWith('SJ-')) {
-            ticketFinal = `SJ-${ticketFinal}`;
-        }
+        const fetchSeguimiento = async () => {
+            let ticketFinal = idCorto.toUpperCase().trim();
+            if (!ticketFinal.startsWith('SJ-')) {
+                ticketFinal = `SJ-${ticketFinal}`;
+            }
 
-        // Si el ticketFinal es distinto al idCorto de la URL y no queremos que ensucie,
-        // nos aseguramos de llamar a la API SOLO con el ticketFinal procesado.
-        try {
-            setLoading(true);
-            const res = await serviceApi.consultarSeguimiento(ticketFinal);
-            const datosPedido = res.success ? res : res; 
-            setPedido(datosPedido);
-            setError(null);
-        // eslint-disable-next-line no-unused-vars
-        } catch (err) {
-            setError("No se encontró el ticket.");
-        } finally {
-            setLoading(false);
-        }
-    };
+            try {
+                setLoading(true);
+                const res = await serviceApi.consultarSeguimiento(ticketFinal);
+                setPedido(res);
+                setError(null);
+            } catch {
+                setError("No se encontró el ticket.");
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    fetchSeguimiento();
-}, [idCorto]);
+        fetchSeguimiento();
+    }, [idCorto]);
 
     if (loading) return (
         <div className="py-20 text-center">
@@ -49,7 +44,7 @@ useEffect(() => {
         </div>
     );
 
-    if (error) return (
+    if (error || !pedido) return (
         <div className="py-20 text-center px-4">
             <AlertTriangle className="mx-auto text-red-500 mb-4" size={48} />
             <h2 className="text-red-500 font-bold uppercase mb-2 italic">Error de Seguimiento</h2>
@@ -89,7 +84,7 @@ useEffect(() => {
                                 <p className="text-slate-400 text-xs font-bold mt-2 tracking-widest">TICKET: {pedido.idCorto}</p>
                             </div>
                             
-                            <div className="bg-black text-white p-4 rounded-2xl min-w-140px text-center shadow-[4px_4px_0px_0px_rgba(37,99,235,1)]">
+                            <div className="bg-black text-white p-4 rounded-2xl text-center shadow-[4px_4px_0px_0px_rgba(37,99,235,1)]">
                                 <p className="text-[10px] uppercase tracking-widest mb-1 opacity-70">Estado</p>
                                 <span className="text-xl font-bold uppercase italic text-blue-400">
                                     {pedido.estado}
@@ -103,7 +98,7 @@ useEffect(() => {
                                 <Wrench className="absolute -top-3 -left-3 bg-white text-blue-600 p-1 rounded-lg border-2 border-blue-100" size={32} />
                                 <p className="text-[10px] font-bold uppercase text-blue-400 mb-2 ml-4">Reporte de Falla</p>
                                 <p className="text-slate-700 italic font-medium leading-relaxed">
-                                    "{pedido.falla}"
+                                    "{pedido.falla || "Sin falla"}"
                                 </p>
                             </div>
 
@@ -121,6 +116,11 @@ useEffect(() => {
                                                     <span className="text-[9px] font-bold text-slate-400 uppercase">
                                                         {nota.fecha}
                                                     </span>
+                                                    {nota.estado && (
+                                                        <span className="text-[9px] font-black bg-blue-100 text-blue-800 px-2 py-0.5 rounded uppercase">
+                                                            {nota.estado}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <p className="text-slate-700 italic text-sm font-medium leading-relaxed">
                                                     "{nota.texto}"
@@ -143,7 +143,7 @@ useEffect(() => {
                                         <span className="text-[9px] font-bold uppercase">Ingresado</span>
                                     </div>
 
-                                {/* Paso 2: Taller */}
+                                    {/* Paso 2: Taller */}
                                     <div className="relative z-10 flex flex-col items-center gap-2">
                                         <div className={`w-5 h-5 rounded-full border-4 border-white ring-2 ${
                                             pedido.estado === 'en reparación' || pedido.estado === 'listo' 
@@ -152,6 +152,7 @@ useEffect(() => {
                                         }`}></div>
                                         <span className="text-[9px] font-bold uppercase text-slate-400">Taller</span>
                                     </div>
+
                                     {/* Paso 3: Listo */}
                                     <div className="relative z-10 flex flex-col items-center gap-2">
                                         <div className={`w-5 h-5 rounded-full border-4 border-white ring-2 ${

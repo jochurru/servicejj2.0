@@ -24,7 +24,6 @@ const AdminWizard = () => {
 
             scanner.render(
                 (decodedText) => {
-                    // Si el QR tiene la URL completa, nos quedamos con el ID final
                     const partes = decodedText.split('/');
                     const idExtraido = partes[partes.length - 1].toUpperCase();
                     
@@ -34,7 +33,7 @@ const AdminWizard = () => {
                     ejecutarBusquedaRapida(idExtraido);
                 },
                 () => { /* Silencioso para evitar spam de consola */ }
-                );
+            );
         }
 
         return () => {
@@ -48,7 +47,12 @@ const AdminWizard = () => {
         if (!id) return;
         setLoading(true);
         try {
-            const q = query(collection(db, "pedidos"), where("idCorto", "==", id.trim()));
+            let idBuscado = id.trim().toUpperCase();
+            if (!idBuscado.startsWith('SJ-')) {
+                idBuscado = 'SJ-' + idBuscado;
+            }
+
+            const q = query(collection(db, "pedidos"), where("idCorto", "==", idBuscado));
             const querySnapshot = await getDocs(q);
             
             if (!querySnapshot.empty) {
@@ -56,12 +60,21 @@ const AdminWizard = () => {
                 setPedido({ id: docSnap.id, ...docSnap.data() });
                 setNuevoEstado(docSnap.data().estado);
             } else {
-                Swal.fire({
-                    title: "No encontrado",
-                    text: `El código ${id} no existe en la base de datos.`,
-                    icon: "warning",
-                    confirmButtonColor: "#2563eb"
-                });
+                const qAlt = query(collection(db, "pedidos"), where("idCorto", "==", idBuscado));
+                const snapshotAlt = await getDocs(qAlt);
+                
+                if (!snapshotAlt.empty) {
+                    const docSnap = snapshotAlt.docs[0];
+                    setPedido({ id: docSnap.id, ...docSnap.data() });
+                    setNuevoEstado(docSnap.data().estado);
+                } else {
+                    Swal.fire({
+                        title: "No encontrado",
+                        text: `El código ${idBuscado} no existe en la base de datos.`,
+                        icon: "warning",
+                        confirmButtonColor: "#2563eb"
+                    });
+                }
             }
         } catch (error) {
             console.error(error);
@@ -74,32 +87,63 @@ const AdminWizard = () => {
         if (!pedido) return;
         setLoading(true);
         try {
-            const pedidoRef = doc(db, "pedidos", pedido.id);
+            // 1. Referencia a los documentos de Firestore
+            const pedidoRefPrincipal = doc(db, "pedidos", pedido.id);
             const dataToUpdate = { estado: nuevoEstado };
 
             if (nuevaNota.trim()) {
-                dataToUpdate.notasTecnico = arrayUnion({
+                const entradaBitacora = {
                     fecha: new Date().toLocaleString('es-AR', { 
                         day: '2-digit', month: '2-digit', year: 'numeric', 
                         hour: '2-digit', minute: '2-digit' 
                     }) + " hs",
-                    texto: nuevaNota.trim()
+                    texto: nuevaNota.trim(),
+                    estado: nuevoEstado 
+                };
+
+                // Actualizamos pedidos para el panel de administración
+                dataToUpdate.notasTecnico = arrayUnion(entradaBitacora);
+
+                // 2. IMPORTANTE: Agregamos el registro a la colección independiente "seguimiento"
+                // Asegúrate de que el documento también lleve el idCorto o idPedido para que Seguimiento.jsx lo lea por parámetro
+                const seguimientoRef = doc(db, "seguimiento", pedido.id);
+                await updateDoc(seguimientoRef, {
+                    estado: nuevoEstado,
+                    actualizado: new Date().toISOString(),
+                    notasTecnico: arrayUnion(entradaBitacora)
                 });
             }
 
-            await updateDoc(pedidoRef, dataToUpdate);
+            await updateDoc(pedidoRefPrincipal, dataToUpdate);
+
+            // Sincronización opcional con el backend
+            try {
+                await fetch(`${import.meta.env.VITE_API_URL}/api/pedidos/estado`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: pedido.id,
+                        estado: nuevoEstado,
+                        nota: nuevaNota.trim()
+                    })
+                });
+            } catch {
+                // Silencioso
+            }
 
             Swal.fire({
                 title: '¡Actualizado!',
-                text: 'Estado y bitácora guardados.',
+                text: 'Estado y bitácora guardados en seguimiento.',
                 icon: 'success',
                 timer: 2000,
-                showConfirmButton: false,
-                popup: 'rounded-[35px]'
+                showConfirmButton: false
             });
 
+            // REINICIO DE ESTADOS
+            setPedido(null);
+            setBusqueda("");
             setNuevaNota("");
-            ejecutarBusquedaRapida(pedido.idCorto); // Refrescar datos
+            
         } catch (error) {
             console.error(error);
             Swal.fire("Error", "No se pudo guardar", "error");
@@ -121,7 +165,7 @@ const AdminWizard = () => {
 
             {/* OVERLAY DEL SCANNER */}
             {isScanning && (
-                <div className="fixed inset-0 z-100 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center p-6">
+                <div className="fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center p-6">
                     <button 
                         onClick={() => setIsScanning(false)}
                         className="absolute top-10 right-10 bg-white/10 hover:bg-red-500 text-white p-4 rounded-full transition-all"
@@ -165,7 +209,7 @@ const AdminWizard = () => {
 
             {/* FORMULARIO DE EDICIÓN */}
             {pedido ? (
-                <div className="bg-white rounded-[50px] p-8 md:p-12 shadow-2xl border border-slate-100 transition-all animate-in fade-in slide-in-from-bottom-4">
+                <div className="bg-white rounded-[50px] p-8 md:p-12 shadow-2xl border border-slate-100 transition-all space-y-8">
                     <div className="flex justify-between items-start mb-8">
                         <div>
                             <span className="text-blue-600 font-black uppercase text-[10px] tracking-[0.3em]">Pedido Identificado</span>
@@ -173,7 +217,7 @@ const AdminWizard = () => {
                             <p className="text-slate-400 font-bold italic">{pedido.modelo || 'Sin modelo'}</p>
                         </div>
                         <div className="bg-slate-100 px-4 py-2 rounded-xl text-[10px] font-black uppercase">
-                            SJ-{pedido.idCorto}
+                            SJ-{pedido.idCorto || pedido.id}
                         </div>
                     </div>
 
@@ -183,13 +227,78 @@ const AdminWizard = () => {
                                 key={est}
                                 onClick={() => setNuevoEstado(est)}
                                 className={`p-4 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest transition-all ${
-                                    nuevoEstado === est ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200 scale-105' : 'bg-slate-50 border-slate-100 text-slate-400 hover:border-slate-200'
+                                    nuevoEstado === est 
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200 scale-105' 
+                                    : 'bg-slate-50 border-slate-100 text-slate-400 hover:border-slate-200'
                                 }`}
                             >
                                 {est}
                             </button>
                         ))}
                     </div>
+
+                    {/* REPORTE DE FALLA */}
+                    <div className="p-6 bg-blue-50 rounded-3xl border-2 border-blue-100 relative">
+                        <Wrench className="absolute -top-3 -left-3 bg-white text-blue-600 p-1 rounded-lg border-2 border-blue-100" size={32} />
+                        <p className="text-[10px] font-black uppercase text-blue-400 mb-2 ml-4 tracking-wider">
+                            Reporte de Falla
+                        </p>
+                        <p className="text-slate-700 italic font-medium leading-relaxed ml-4">
+                            "{pedido.falla || "Sin reporte de falla"}"
+                        </p>
+                    </div>
+                    {/* FOTOS DEL EQUIPO */}
+                    {pedido.fotos && pedido.fotos.length > 0 && (
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">
+                                Fotos del Equipo
+                            </p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {pedido.fotos.map((url, index) => (
+                                    <a 
+                                        key={index} 
+                                        href={url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="block aspect-square rounded-2xl overflow-hidden border-2 border-slate-100 hover:border-blue-400 transition-all hover:scale-105 shadow-sm"
+                                    >
+                                        <img 
+                                            src={url} 
+                                            alt={`Foto ${index + 1}`} 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    )}    
+                    {/* HISTORIAL DE LA BITÁCORA */}
+                    {(pedido.notasTecnico || pedido.seguimiento) && ((pedido.notasTecnico?.length > 0) || (pedido.seguimiento?.length > 0)) && (
+                        <div className="space-y-4">
+                            <h3 className="text-[10px] font-black uppercase text-slate-800 tracking-[0.2em] ml-2">
+                                Historial de Actualizaciones
+                            </h3>
+                            <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                                {(pedido.notasTecnico || pedido.seguimiento).map((nota, index) => (
+                                    <div key={index} className="bg-slate-50 border-l-4 border-blue-500 p-4 rounded-r-2xl shadow-sm">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase">
+                                                {nota.fecha}
+                                            </span>
+                                            {nota.estado && (
+                                                <span className="text-[9px] font-black bg-blue-100 text-blue-800 px-2 py-0.5 rounded uppercase">
+                                                    {nota.estado}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-slate-700 italic text-sm font-medium leading-relaxed">
+                                            "{nota.texto}"
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mb-10">
                         <label className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400 mb-4 ml-2 tracking-widest">
