@@ -14,13 +14,14 @@ import TecnicoOnline from "./pages/TecnicoOnline.jsx";
 import Login from "./components/common/Login.jsx";
 import MisPedidos from "./pages/MisPedidos.jsx";
 import Seguimiento from "./pages/Seguimiento.jsx"; 
-import AdminWizard from "./pages/AdminWizard.jsx"; 
+import AdminWizard from "./pages/AdminWizard.jsx";
+import AdminRoute from "./components/common/AdminRoute.jsx";
 
 function App() {
   return (
     <Router>
       <ScrollToTop />
-      <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="min-h-screen bg-white flex flex-col">
         <Navbar />
         <main className="grow pt-20 md:pt-24">
           <Routes>
@@ -32,7 +33,14 @@ function App() {
             <Route path="/seguimiento/:idCorto" element={<Seguimiento />} />
             
             {/* 🛠️ RUTA DE ADMIN: Administrador de taller */}
-            <Route path="/admin-wizard" element={<AdminWizard />} />
+            <Route
+              path="/admin-wizard"
+              element={
+                <AdminRoute>
+                  <AdminWizard />
+                </AdminRoute>
+              }
+            />
 
             <Route path="/terminos" element={<Terminos />} />
             <Route path="/privacidad" element={<Privacidad />} />

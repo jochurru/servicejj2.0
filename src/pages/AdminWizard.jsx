@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { db } from "../services/firebaseConfig";
-import { doc, updateDoc, arrayUnion, getDocs, collection, query, where } from "firebase/firestore";
+import React, { useState, useEffect, useCallback } from 'react';
+import { serviceApi } from '../services/api';
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { Search, Save, QrCode, X, Wrench, ClipboardList } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -13,7 +12,26 @@ const AdminWizard = () => {
     const [loading, setLoading] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
 
-    // Lógica del Scanner QR
+    const ejecutarBusquedaRapida = useCallback(async (id) => {
+        if (!id) return;
+        setLoading(true);
+        try {
+            const encontrado = await serviceApi.buscarPedido(id);
+            setPedido(encontrado);
+            setNuevoEstado(encontrado.estado || 'pendiente');
+        } catch (error) {
+            console.error(error);
+            Swal.fire({
+                title: 'No encontrado',
+                text: error.message || 'El ticket no existe en la base de datos.',
+                icon: 'warning',
+                confirmButtonColor: '#2563eb',
+            });
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         let scanner = null;
         if (isScanning) {
@@ -26,127 +44,52 @@ const AdminWizard = () => {
                 (decodedText) => {
                     const partes = decodedText.split('/');
                     const idExtraido = partes[partes.length - 1].toUpperCase();
-                    
+
                     setBusqueda(idExtraido);
                     setIsScanning(false);
                     scanner.clear();
                     ejecutarBusquedaRapida(idExtraido);
                 },
-                () => { /* Silencioso para evitar spam de consola */ }
+                () => { /* Silencioso */ }
             );
         }
 
         return () => {
             if (scanner) {
-                scanner.clear().catch(error => console.error("Error al limpiar scanner", error));
+                scanner.clear().catch((err) => console.error('Error al limpiar scanner', err));
             }
         };
-    }, [isScanning]);
-
-    const ejecutarBusquedaRapida = async (id) => {
-        if (!id) return;
-        setLoading(true);
-        try {
-            let idBuscado = id.trim().toUpperCase();
-            if (!idBuscado.startsWith('SJ-')) {
-                idBuscado = 'SJ-' + idBuscado;
-            }
-
-            const q = query(collection(db, "pedidos"), where("idCorto", "==", idBuscado));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-                const docSnap = querySnapshot.docs[0];
-                setPedido({ id: docSnap.id, ...docSnap.data() });
-                setNuevoEstado(docSnap.data().estado);
-            } else {
-                const qAlt = query(collection(db, "pedidos"), where("idCorto", "==", idBuscado));
-                const snapshotAlt = await getDocs(qAlt);
-                
-                if (!snapshotAlt.empty) {
-                    const docSnap = snapshotAlt.docs[0];
-                    setPedido({ id: docSnap.id, ...docSnap.data() });
-                    setNuevoEstado(docSnap.data().estado);
-                } else {
-                    Swal.fire({
-                        title: "No encontrado",
-                        text: `El código ${idBuscado} no existe en la base de datos.`,
-                        icon: "warning",
-                        confirmButtonColor: "#2563eb"
-                    });
-                }
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [isScanning, ejecutarBusquedaRapida]);
 
     const actualizarPedido = async () => {
         if (!pedido) return;
         setLoading(true);
         try {
-            // 1. Referencia a los documentos de Firestore
-            const pedidoRefPrincipal = doc(db, "pedidos", pedido.id);
-            const dataToUpdate = { estado: nuevoEstado };
-
+            const payload = { estado: nuevoEstado };
             if (nuevaNota.trim()) {
-                const entradaBitacora = {
-                    fecha: new Date().toLocaleString('es-AR', { 
-                        day: '2-digit', month: '2-digit', year: 'numeric', 
-                        hour: '2-digit', minute: '2-digit' 
-                    }) + " hs",
-                    texto: nuevaNota.trim(),
-                    estado: nuevoEstado 
-                };
-
-                // Actualizamos pedidos para el panel de administración
-                dataToUpdate.notasTecnico = arrayUnion(entradaBitacora);
-
-                // 2. IMPORTANTE: Agregamos el registro a la colección independiente "seguimiento"
-                // Asegúrate de que el documento también lleve el idCorto o idPedido para que Seguimiento.jsx lo lea por parámetro
-                const seguimientoRef = doc(db, "seguimiento", pedido.id);
-                await updateDoc(seguimientoRef, {
-                    estado: nuevoEstado,
-                    actualizado: new Date().toISOString(),
-                    notasTecnico: arrayUnion(entradaBitacora)
-                });
+                payload.nuevaNota = nuevaNota.trim();
             }
 
-            await updateDoc(pedidoRefPrincipal, dataToUpdate);
-
-            // Sincronización opcional con el backend
-            try {
-                await fetch(`${import.meta.env.VITE_API_URL}/api/pedidos/estado`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: pedido.id,
-                        estado: nuevoEstado,
-                        nota: nuevaNota.trim()
-                    })
-                });
-            } catch {
-                // Silencioso
-            }
+            await serviceApi.updatePedido(pedido.id, payload);
 
             Swal.fire({
                 title: '¡Actualizado!',
-                text: 'Estado y bitácora guardados en seguimiento.',
+                text: 'Estado y bitácora sincronizados con el servidor.',
                 icon: 'success',
                 timer: 2000,
                 showConfirmButton: false
             });
 
-            // REINICIO DE ESTADOS
             setPedido(null);
             setBusqueda("");
             setNuevaNota("");
-            
         } catch (error) {
             console.error(error);
-            Swal.fire("Error", "No se pudo guardar", "error");
+            Swal.fire(
+                'Error',
+                error.message || 'No se pudo guardar',
+                'error'
+            );
         } finally {
             setLoading(false);
         }
@@ -217,7 +160,9 @@ const AdminWizard = () => {
                             <p className="text-slate-400 font-bold italic">{pedido.modelo || 'Sin modelo'}</p>
                         </div>
                         <div className="bg-slate-100 px-4 py-2 rounded-xl text-[10px] font-black uppercase">
-                            SJ-{pedido.idCorto || pedido.id}
+                            {pedido.idCorto?.startsWith('SJ-')
+                                ? pedido.idCorto
+                                : `SJ-${pedido.idCorto || pedido.id}`}
                         </div>
                     </div>
 

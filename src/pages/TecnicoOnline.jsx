@@ -1,258 +1,188 @@
-import React, { useEffect, useState } from 'react'; // Agregamos useEffect
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { serviceApi } from '../services/api'; 
-import { useAuth } from "../hooks/useAuth"; // 1. Importamos el hook
+import { Loader2, Upload, X } from 'lucide-react';
+import { serviceApi } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
+import PageHero from '../components/ui/PageHero';
+import { FadeIn } from '../components/ui/FadeIn';
+
+const STEPS = ['Tus datos', 'El equipo', 'Falla y fotos'];
 
 const TecnicoOnline = () => {
-    const { user } = useAuth(); // 2. Consumimos el usuario
-    
-    const [formData, setFormData] = useState({
-        nombre: '',
-        telefono: '',
-        email: '',
-        equipo: '',
-        modelo: '',
-        falla: '',
-        fotos: [], 
-        aceptaTerminos: false
-    });
-    const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const [step, setStep] = useState(0);
+  const [formData, setFormData] = useState({
+    nombre: '', telefono: '', email: '', equipo: '', modelo: '', falla: '', fotos: [], aceptaTerminos: false,
+  });
+  const [loading, setLoading] = useState(false);
 
-    // 3. EFECTO: Si hay usuario logueado, autocompletamos nombre y email
-    useEffect(() => {
-        if (user) {
-            setFormData(prev => ({
-                ...prev,
-                nombre: user.displayName || '',
-                email: user.email || ''
-            }));
-        }
-    }, [user]);
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        nombre: user.displayName || '',
+        email: user.email || '',
+      }));
+    }
+  }, [user]);
 
-    const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        if (formData.fotos.length + files.length > 5) {
-            return Swal.fire('¡Ups!', 'El máximo es de 5 fotos.', 'warning');
-        }
-        
-        const newPhotos = files.map(file => ({
-            file,
-            preview: URL.createObjectURL(file)
-        }));
-        
-        setFormData({ ...formData, fotos: [...formData.fotos, ...newPhotos] });
-    };
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (formData.fotos.length + files.length > 5) {
+      return Swal.fire('Máximo 5 fotos', 'Podés subir hasta 5 imágenes del equipo.', 'warning');
+    }
+    const newPhotos = files.map((file) => ({ file, preview: URL.createObjectURL(file) }));
+    setFormData({ ...formData, fotos: [...formData.fotos, ...newPhotos] });
+  };
 
-const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const dataParaEnviar = new FormData();
+      dataParaEnviar.append('nombre', formData.nombre);
+      dataParaEnviar.append('telefono', formData.telefono);
+      dataParaEnviar.append('email', formData.email);
+      dataParaEnviar.append('equipo', formData.equipo);
+      dataParaEnviar.append('modelo', formData.modelo);
+      dataParaEnviar.append('falla', formData.falla);
+      dataParaEnviar.append('aceptaTerminos', formData.aceptaTerminos);
+      dataParaEnviar.append('clienteId', user ? user.uid : 'null');
+      formData.fotos.forEach((foto) => dataParaEnviar.append('fotos', foto.file));
 
-        try {
-            const dataParaEnviar = new FormData();
+      const response = await serviceApi.createPedido(dataParaEnviar);
+      Swal.fire({
+        title: '¡Pedido recibido!',
+        html: `<p class="text-sm">Tu ticket de seguimiento:</p><p class="text-2xl font-bold mt-2">${response.idCorto}</p>`,
+        icon: 'success',
+        confirmButtonColor: '#000',
+      });
+      formData.fotos.forEach((f) => URL.revokeObjectURL(f.preview));
+      setFormData({
+        nombre: user ? user.displayName : '',
+        telefono: '', email: user ? user.email : '',
+        equipo: '', modelo: '', falla: '', fotos: [], aceptaTerminos: false,
+      });
+      setStep(0);
+      if (e.target) e.target.reset();
+    } catch (error) {
+      const titulo = error.status === 429 ? 'Demasiados intentos' : 'Error';
+      Swal.fire(titulo, error.message || 'No pudimos conectar con el servidor.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            // 1. Cargamos los datos básicos
-            dataParaEnviar.append('nombre', formData.nombre);
-            dataParaEnviar.append('telefono', formData.telefono);
-            dataParaEnviar.append('email', formData.email);
-            dataParaEnviar.append('equipo', formData.equipo);
-            dataParaEnviar.append('modelo', formData.modelo);
-            dataParaEnviar.append('falla', formData.falla);
-            dataParaEnviar.append('aceptaTerminos', formData.aceptaTerminos);
-            
-            // 2. Si hay usuario logueado, mandamos su ID de Google
-            if (user) {
-                dataParaEnviar.append('clienteId', user.uid);
-            } else {
-                dataParaEnviar.append('clienteId', "null"); // Importante para el "Reclamo" posterior
-            }
+  const canNext = () => {
+    if (step === 0) return formData.nombre && formData.telefono && formData.email;
+    if (step === 1) return formData.equipo && formData.modelo;
+    return formData.falla && formData.aceptaTerminos;
+  };
 
-            // 3. Mandamos las fotos (el Backend espera el campo 'fotos')
-            formData.fotos.forEach((foto) => {
-                dataParaEnviar.append('fotos', foto.file); 
-            });
+  return (
+    <div className="bg-white min-h-screen">
+      <PageHero
+        badge="Técnico online"
+        title="Creá tu pedido en minutos"
+        subtitle="Subí fotos, describí la falla y recibí un presupuesto preliminar con ticket de seguimiento."
+      />
 
-            // --- 🚀 CAMBIO CLAVE AQUÍ ---
-            // Usamos 'createPedido' (nombre exacto en api.js)
-            const response = await serviceApi.createPedido(dataParaEnviar);
-            
-            if (response.success) {
-                Swal.fire({
-                    title: '¡Pedido Recibido!',
-                    // Usamos 'idCorto' para que el cliente vea el ticket SJ-XXXX
-                    text: `Tu código de seguimiento es: ${response.idCorto}`, 
-                    icon: 'success',
-                    confirmButtonColor: '#2563eb'
-                });
+      <section className="section-pad pt-0">
+        <FadeIn className="container-page max-w-2xl">
+          <div className="flex gap-2 mb-10">
+            {STEPS.map((label, i) => (
+              <div key={label} className="flex-1">
+                <div className={`h-1 rounded-full mb-2 ${i <= step ? 'bg-black' : 'bg-neutral-200'}`} />
+                <span className={`text-[10px] uppercase tracking-wider ${i === step ? 'text-black font-semibold' : 'text-neutral-400'}`}>{label}</span>
+              </div>
+            ))}
+          </div>
 
-                // Limpieza de memoria de las fotos
-                formData.fotos.forEach(foto => URL.revokeObjectURL(foto.preview));
-                
-                // Reiniciamos el formulario
-                setFormData({
-                    nombre: user ? user.displayName : '',
-                    telefono: '', 
-                    email: user ? user.email : '', 
-                    equipo: '', modelo: '', falla: '', fotos: [], aceptaTerminos: false
-                });
-                if (e.target) e.target.reset();
-            }
-
-        } catch (error) {
-            console.error("Error en el envío:", error);
-            Swal.fire('Error', 'No pudimos conectar con el servidor. Revisa tu conexión.', 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-slate-900 text-white p-8 pt-24">
-            <h1 className="text-3xl font-newtown text-blue-500 mb-4 uppercase italic tracking-wider">Técnico Online</h1>
-            <p className="mb-8 text-slate-400 font-medium">Diagnóstico remoto profesional para Service JJ.</p>
-
-            <form onSubmit={handleSubmit} className="max-w-2xl bg-slate-800 p-6 rounded-3xl shadow-2xl border border-slate-700">
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                            {user ? 'Nombre (Identificado)' : 'Nombre Completo'}
-                        </label>
-                        <input 
-                            type="text" 
-                            className={`w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all ${user ? 'text-blue-400 italic font-bold' : ''}`}
-                            value={formData.nombre}
-                            onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                            required
-                            readOnly={!!user} // Si hay usuario, no se puede editar
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">WhatsApp</label>
-                        <input 
-                            type="tel" 
-                            className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all"
-                            value={formData.telefono}
-                            onChange={(e) => setFormData({...formData, telefono: e.target.value})}
-                            required
-                        />
-                    </div>
+          <form onSubmit={handleSubmit} className="bg-neutral-50 border border-neutral-200 rounded-2xl p-6 md:p-8">
+            {step === 0 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="label-field">Nombre</label>
+                  <input type="text" className="input-field" value={formData.nombre} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} required readOnly={!!user} />
                 </div>
-
-                <div className="mb-4">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                        {user ? 'Email (Sincronizado)' : 'Correo Electrónico'}
-                    </label>
-                    <input 
-                        type="email" 
-                        className={`w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all ${user ? 'text-blue-400 italic' : ''}`}
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        required
-                        readOnly={!!user} // Bloqueado si hay sesión
-                    />
+                <div>
+                  <label className="label-field">WhatsApp</label>
+                  <input type="tel" className="input-field" value={formData.telefono} onChange={(e) => setFormData({ ...formData, telefono: e.target.value })} required placeholder="11 1234-5678" />
                 </div>
+                <div>
+                  <label className="label-field">Email</label>
+                  <input type="email" className="input-field" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required readOnly={!!user} />
+                </div>
+              </div>
+            )}
 
-                {/* MARCA Y MODELO (Igual que antes) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Equipo (Marca)</label>
-                        <input 
-                            type="text" 
-                            placeholder="Ej: Samsung"
-                            className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all"
-                            value={formData.equipo}
-                            onChange={(e) => setFormData({...formData, equipo: e.target.value})}
-                            required
-                        />
+            {step === 1 && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label-field">Marca / Equipo</label>
+                  <input type="text" className="input-field" placeholder="Samsung" value={formData.equipo} onChange={(e) => setFormData({ ...formData, equipo: e.target.value })} required />
+                </div>
+                <div>
+                  <label className="label-field">Modelo</label>
+                  <input type="text" className="input-field" placeholder="UN55NU7100" value={formData.modelo} onChange={(e) => setFormData({ ...formData, modelo: e.target.value })} required />
+                </div>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-4">
+                <div>
+                  <label className="label-field">Descripción de la falla</label>
+                  <textarea rows={4} className="input-field resize-none" value={formData.falla} onChange={(e) => setFormData({ ...formData, falla: e.target.value })} required placeholder="Contanos qué le pasa al equipo..." />
+                </div>
+                <div>
+                  <label className="label-field">Fotos (máx. 5)</label>
+                  <label className="flex items-center justify-center gap-2 py-8 border border-dashed border-neutral-300 rounded-xl cursor-pointer hover:border-black hover:bg-white transition-colors">
+                    <Upload size={20} />
+                    <span className="text-sm font-medium">Subir imágenes</span>
+                    <input type="file" multiple accept="image/*" onChange={handleFileChange} className="hidden" />
+                  </label>
+                  {formData.fotos.length > 0 && (
+                    <div className="grid grid-cols-5 gap-2 mt-3">
+                      {formData.fotos.map((foto, index) => (
+                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-neutral-200">
+                          <img src={foto.preview} alt="" className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => setFormData({ ...formData, fotos: formData.fotos.filter((_, i) => i !== index) })} className="absolute top-0.5 right-0.5 p-0.5 bg-black text-white rounded-full">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Modelo Exacto</label>
-                        <input 
-                            type="text" 
-                            placeholder="Ej: UN55NU7100"
-                            className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all"
-                            value={formData.modelo}
-                            onChange={(e) => setFormData({...formData, modelo: e.target.value})}
-                            required
-                        />
-                    </div>
+                  )}
                 </div>
+                <p className="text-xs text-neutral-500 leading-relaxed p-4 bg-white rounded-xl border border-neutral-200">
+                  El presupuesto es preliminar. En casos complejos puede requerirse visita técnica presencial.
+                </p>
+                <label className="flex items-start gap-3 cursor-pointer text-sm text-neutral-600">
+                  <input type="checkbox" required checked={formData.aceptaTerminos} onChange={(e) => setFormData({ ...formData, aceptaTerminos: e.target.checked })} className="mt-1" />
+                  <span>Acepto los <Link to="/terminos" className="underline">Términos</Link> y <Link to="/privacidad" className="underline">Privacidad</Link>.</span>
+                </label>
+              </div>
+            )}
 
-                {/* DESCRIPCIÓN Y FOTOS (Igual que antes) */}
-                <div className="mb-4">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Descripción de la falla</label>
-                    <textarea 
-                        rows="3"
-                        className="w-full p-3 bg-slate-900 rounded-xl border border-slate-700 focus:border-blue-500 outline-none transition-all resize-none"
-                        value={formData.falla}
-                        onChange={(e) => setFormData({...formData, falla: e.target.value})}
-                        required
-                    ></textarea>
-                </div>
-
-                <div className="mb-4">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Fotos del equipo (Máx. 5)</label>
-                    <input 
-                        type="file" 
-                        multiple 
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"
-                    />
-                    
-                    <div className="grid grid-cols-5 gap-2 mt-4">
-                        {formData.fotos.map((foto, index) => (
-                            <div key={index} className="relative aspect-square">
-                                <img src={foto.preview} alt="preview" className="w-full h-full object-cover rounded-lg border border-slate-700" />
-                                <button 
-                                    type="button"
-                                    onClick={() => {
-                                        const nuevas = formData.fotos.filter((_, i) => i !== index);
-                                        setFormData({...formData, fotos: nuevas});
-                                    }}
-                                    className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center hover:bg-red-500 transition-colors"
-                                >✕</button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* NOTA Y BOTÓN */}
-<div className="mb-6 p-4 bg-blue-900/30 border-l-4 border-blue-500 rounded-r-xl shadow-lg">
-    <p className="text-[12px] md:text-sm text-blue-100 leading-relaxed italic">
-        <strong className="text-blue-400 uppercase tracking-widest block mb-1">Aviso Importante:</strong>
-        El presupuesto enviado por este medio es **preliminar** y basado en la descripción técnica provista. 
-        En reparaciones de alta complejidad o fallas intermitentes, es posible que se requiera **agendar una visita técnica presencial** para un diagnóstico definitivo. 
-        <span className="block mt-2 font-bold text-white">Aceptamos Mercado Pago y Transferencias.</span>
-    </p>
-</div>
-
-{/* Términos y condiciones */}
-<div className="flex items-center gap-3 mb-6 bg-slate-900/50 p-3 rounded-xl">
-    <input 
-        type="checkbox" 
-        id="terminos"
-        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500 cursor-pointer"
-        checked={formData.aceptaTerminos}
-        onChange={(e) => setFormData({...formData, aceptaTerminos: e.target.checked})}
-        required
-    />
-    <label htmlFor="terminos" className="text-[11px] text-slate-400 leading-none cursor-pointer">
-        Acepto los <Link to="/terminos" className="text-blue-500 hover:underline">Términos</Link> y las <Link to="/privacidad" className="text-blue-500 hover:underline">Políticas de Privacidad</Link>.
-    </label>
-</div>
-
-                <button 
-                    type="submit" 
-                    disabled={loading}
-                    className={`w-full py-4 rounded-xl font-newtown italic uppercase tracking-widest transition-all ${loading ? 'bg-slate-700 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 hover:scale-[1.02]'}`}
-                >
-                    {loading ? 'Procesando diagnóstico...' : 'Obtener Presupuesto Express'}
+            <div className="flex gap-3 mt-8 pt-6 border-t border-neutral-200">
+              {step > 0 && (
+                <button type="button" onClick={() => setStep(step - 1)} className="btn-secondary flex-1">Atrás</button>
+              )}
+              {step < 2 ? (
+                <button type="button" disabled={!canNext()} onClick={() => setStep(step + 1)} className="btn-primary flex-1 disabled:opacity-40">Siguiente</button>
+              ) : (
+                <button type="submit" disabled={loading || !canNext()} className="btn-primary flex-1 disabled:opacity-50">
+                  {loading ? <><Loader2 size={18} className="animate-spin" /> Enviando...</> : 'Enviar pedido'}
                 </button>
-            </form>
-        </div>
-    );
+              )}
+            </div>
+          </form>
+        </FadeIn>
+      </section>
+    </div>
+  );
 };
 
 export default TecnicoOnline;

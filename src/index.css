@@ -1,28 +1,70 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 @theme {
   --font-newtown: "NewtownBold", sans-serif;
-  /* Definimos los colores de marca */
-  --color-brand-blue: #2563eb;
-  --color-brand-green: #22c55e;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --color-brand: #000000;
+  --color-brand-muted: #525252;
+  --color-surface: #fafafa;
+  --color-border: #e5e5e5;
 }
 
 @font-face {
-  font-family: 'NewtownBold';
-  src: url('./assets/fonts/NEWTOW_B.TTF') format('truetype');
+  font-family: "NewtownBold";
+  src: url("./assets/fonts/NEWTOW_B.TTF") format("truetype");
   font-weight: bold;
   font-style: normal;
 }
 
-/* Aplicamos el redondeo XL por defecto a botones y cards */
-@layer components {
-  .btn-pro {
-    @apply rounded-2xl font-newtown italic uppercase transition-all duration-300;
+@layer base {
+  body {
+    @apply font-sans text-neutral-800 bg-white antialiased;
   }
-  .card-pro {
-    @apply rounded-2xl border-2 border-black bg-white transition-all duration-300;
+
+  h1, h2, h3 {
+    @apply font-newtown italic uppercase tracking-tight text-black;
   }
 }
+
+@layer components {
+  .container-page {
+    @apply max-w-6xl mx-auto px-4 sm:px-6;
+  }
+
+  .section-pad {
+    @apply py-20 md:py-28;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-black text-white px-6 py-3.5 rounded-full font-medium text-sm transition-all duration-300 hover:bg-neutral-800 hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 bg-white text-black px-6 py-3.5 rounded-full font-medium text-sm border-2 border-black transition-all duration-300 hover:bg-black hover:text-white;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 text-black font-medium text-sm underline-offset-4 hover:underline transition-colors;
+  }
+
+  .card-minimal {
+    @apply bg-white border border-neutral-200 rounded-2xl p-6 transition-all duration-300 hover:border-black hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)];
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-all focus:border-black focus:bg-white focus:ring-1 focus:ring-black;
+  }
+
+  .label-field {
+    @apply block text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1.5;
+  }
+
+  .badge {
+    @apply inline-block px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] bg-neutral-100 text-neutral-600 rounded-full;
+  }
+}
+
 html {
   scroll-behavior: smooth;
 }

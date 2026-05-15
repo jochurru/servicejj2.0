@@ -25,10 +25,11 @@ const Seguimiento = () => {
             try {
                 setLoading(true);
                 const res = await serviceApi.consultarSeguimiento(ticketFinal);
-                setPedido(res);
+                const { success: _s, ...datosPedido } = res;
+                setPedido(datosPedido);
                 setError(null);
-            } catch {
-                setError("No se encontró el ticket.");
+            } catch (err) {
+                setError(err.message || 'No se encontró el ticket.');
             } finally {
                 setLoading(false);
             }

@@ -4,6 +4,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { useAuth } from "../hooks/useAuth";
 import { Hammer, Clock, CheckCircle, Wrench } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import { serviceApi } from '../services/api';
 
 const MisPedidos = () => {
     const { user, loading: authLoading } = useAuth();
@@ -24,23 +25,15 @@ const MisPedidos = () => {
             try {
                 // 1. Intentamos sincronizar los pedidos huérfanos con el backend
                 try {
-                    const response = await fetch(`${import.meta.env.VITE_API_URL}/pedidos/reclamar`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            email: user.email,
-                            clienteId: user.uid,
-                        }),
+                    const result = await serviceApi.reclamarPedidos({
+                        email: user.email,
+                        clienteId: user.uid,
                     });
-                    
-                    if (response.ok) {
-                        console.log("Pedidos reclamados y sincronizados correctamente.");
+                    if (result.success) {
+                        console.log(result.message || 'Pedidos vinculados correctamente.');
                     }
-                // eslint-disable-next-line no-unused-vars
-                } catch (apiError) {
-                    console.log("No se pudo conectar con el endpoint de reclamo. Continuando...");
+                } catch {
+                    console.log('No se pudo conectar con el endpoint de reclamo. Continuando...');
                 }
 
                 // 2. Buscamos en Firestore los pedidos asociados al usuario.
