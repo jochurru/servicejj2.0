@@ -1,143 +1,159 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, MapPin } from 'lucide-react'; 
-import ContactForm from '../components/common/ContactForm.jsx';
-import BusquedaPedido from '../components/common/BusquedaPedido.jsx';
-import { SERVICIOS } from '../data/servicios'; 
+import { MotionDiv } from '../components/ui/motion';
+import { ArrowRight, CheckCircle2, MapPin, Search } from 'lucide-react';
+import ContactForm from '../components/common/ContactForm';
+import BusquedaPedido from '../components/common/BusquedaPedido';
+import SectionHeader from '../components/ui/SectionHeader';
+import { FadeIn, Stagger, StaggerItem } from '../components/ui/FadeIn';
+import { SERVICIOS } from '../data/servicios';
 
-const Home = () => {
-    const scrollToContact = () => {
-        document.getElementById('contacto-seccion')?.scrollIntoView({ behavior: 'smooth' });
-    };
+const PASOS = [
+  { num: '01', title: 'Solicitá servicio', desc: 'Completá el formulario online o traé tu equipo al local.' },
+  { num: '02', title: 'Diagnóstico', desc: 'Evaluamos la falla y te damos un presupuesto sin compromiso.' },
+  { num: '03', title: 'Seguimiento', desc: 'Consultá el estado con tu ticket SJ-XXXX en cualquier momento.' },
+];
 
-    return (
-        <div className="flex flex-col w-full bg-white">
-            {/* HERO SECTION - DOS COLUMNAS */}
-            <section className="pt-18 pb-20 px-4 flex justify-center border-b border-slate-50">
-                <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                    
-                    {/* COLUMNA IZQUIERDA: SLOGAN Y TEXTO */}
-                    <div className="text-left">
-                        <span className="bg-blue-100 text-blue-600 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-6 inline-block">
-                            Servicio tecnico con garantía escrita.
-                        </span>
-                        <h1 className="font-newtown text-7xl md:text-6xl pt-0.5 uppercase italic leading-[0.85] text-slate-900 mb-6 tracking-tighter">
-                            Soluciones Reales <br />
-                            <span className="text-blue-600">Para Problemas</span> <br />
-                            Técnicos
-                        </h1>
-                        <p className="text-slate-500 text-lg font-medium mb-10 max-w-md">
-                            Servicios a todo CABA y alrededores.
-                        </p>
-                        
-                        {/* BOTONES DE ACCIÓN */}
-                        <div className="flex flex-col sm:flex-row gap-4">
-                            <Link to="/tecnico-online" className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-newtown italic uppercase hover:bg-blue-700 transition-all text-center shadow-lg shadow-blue-200">
-                                Técnico Online
-                            </Link>
-                            <button 
-                                onClick={scrollToContact} 
-                                className="bg-black text-white px-8 py-4 rounded-2xl font-newtown italic uppercase hover:bg-slate-800 transition-all text-center"
-                            >
-                                Contacto
-                            </button>
-                        </div>
-                    </div>
+const Home = () => (
+  <div className="bg-white">
+    <section className="section-pad pt-4 border-b border-neutral-100">
+      <div className="container-page grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <MotionDiv
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <span className="badge mb-6">Service JJ · CABA</span>
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl leading-[0.92] mb-6">
+            Reparación rápida y confiable
+          </h1>
+          <p className="text-lg text-neutral-500 max-w-md leading-relaxed mb-8">
+            Servicio técnico integral, climatización y seguimiento digital. Más de 20 años de experiencia.
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <Link to="/tecnico-online" className="btn-primary">
+              Crear pedido <ArrowRight size={16} />
+            </Link>
+            <a href="#servicios" className="btn-secondary">Ver servicios</a>
+          </div>
+        </MotionDiv>
+        <FadeIn delay={0.15}>
+          <div className="relative">
+            <div className="absolute -inset-4 bg-neutral-50 rounded-3xl -z-10" />
+            <BusquedaPedido />
+          </div>
+        </FadeIn>
+      </div>
+    </section>
 
-                    {/* COLUMNA DERECHA: CONSULTA TU REPARACIÓN */}
-                    <div className="w-full">
-                        <BusquedaPedido />
-                    </div>
+    <section id="servicios" className="section-pad bg-neutral-50">
+      <div className="container-page">
+        <SectionHeader badge="Servicios" title="Todo lo que necesitás" subtitle="Reparación, climatización y productos con garantía." />
+        <Stagger className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {SERVICIOS.map((s) => (
+            <StaggerItem key={s.id}>
+              <Link to={s.path} className="card-minimal h-full flex flex-col group">
+                <div className="w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  {s.icon}
                 </div>
-            </section>
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-neutral-400 mb-2">{s.label}</span>
+                <h3 className="text-xl mb-2">{s.title}</h3>
+                <p className="text-sm text-neutral-500 leading-relaxed grow">{s.desc}</p>
+                <span className="mt-4 text-sm font-medium inline-flex items-center gap-1 group-hover:gap-2 transition-all">
+                  Ver más <ArrowRight size={14} />
+                </span>
+              </Link>
+            </StaggerItem>
+          ))}
+        </Stagger>
+      </div>
+    </section>
 
-            {/* SECCIÓN DE SERVICIOS - Grid de 4 columnas */}
-            <section className="py-20 bg-slate-50 px-4 border-y border-slate-100">
-                <div className="max-w-6xl mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {SERVICIOS.map((s) => (
-                            <Link 
-                                to={s.path} 
-                                key={s.id}
-                                className={`group p-8 rounded-[40px] border-2 border-transparent bg-white shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col items-center text-center ${s.color} ${s.destacado ? 'md:scale-105 border-blue-100 shadow-md' : ''}`}
-                            >
-                                <div className="mb-6 p-5 rounded-3xl bg-slate-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 transform group-hover:rotate-12">
-                                    {s.icon}
-                                </div>
-                                <span className="text-[10px] font-black tracking-[0.2em] text-blue-600 mb-2 uppercase">{s.label}</span>
-                                <h2 className="font-newtown text-2xl italic uppercase mb-4 text-slate-900">{s.title}</h2>
-                                <p className="text-slate-500 text-xs leading-relaxed mb-6">{s.desc}</p>
-                                <div className="mt-auto flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest text-black group-hover:text-blue-600 transition-colors">
-                                    Saber más <span className="text-lg">+</span>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* SECCIÓN DE CONFIANZA */}
-            <section className="py-16 bg-black text-white px-4">
-                <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-12">
-                    {[
-                        { t: "+20 Años", s: "Trayectoria" },
-                        { t: "Garantía", s: "Por Escrito" },
-                        { t: "Repuestos", s: "Originales" },
-                        { t: "Atención", s: "Inmediata" }
-                    ].map((item, i) => (
-                        <div key={i} className="flex flex-col items-center text-center">
-                            <CheckCircle2 className="text-blue-500 mb-4" size={28} />
-                            <h3 className="font-newtown italic text-2xl uppercase leading-none">{item.t}</h3>
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">{item.s}</p>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            {/* UBICACIÓN */}
-            <section className="py-24 bg-white px-4">
-                <div className="max-w-6xl mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-                        <div className="space-y-8">
-                            <h2 className="font-newtown text-5xl italic uppercase leading-none text-slate-900">
-                                Estamos <br />
-                                <span className="text-blue-600">Cerca Tuyo</span>
-                            </h2>
-                            <p className="text-slate-600 text-lg leading-relaxed font-medium">
-                                Operamos en toda la zona de <strong>Villa Crespo, Almagro y Palermo</strong>. Traé tu equipo o coordinamos un service a domicilio en el día.
-                            </p>
-                            
-                            <div className="flex items-center gap-5 p-6 bg-slate-50 rounded-3xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl">
-                                <div className="p-4 rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-200">
-                                    <MapPin size={24} />
-                                </div>
-                                <div>
-                                    <p className="font-black text-slate-900 uppercase tracking-tight leading-none">Av. Ángel Gallardo 1049</p>
-                                    <p className="text-slate-400 text-sm mt-1 font-bold italic">Villa Crespo, CABA</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="h-100 w-full rounded-[50px] overflow-hidden border-8 border-slate-50 shadow-2xl relative">
-                            <iframe 
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3284.457876822831!2d-58.4357534!3d-34.6039572!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcca69584288b5%3A0x7d0130691523f66a!2sAv.%20%C3%81ngel%20Gallardo%201049%2C%20C1405%20Cdad.%20Aut%C3%B3noma%20de%20Buenos%20Aires!5e0!3m2!1ses-419!2sar!4v1710000000000" 
-                                width="100%" 
-                                height="100%" 
-                                style={{ border: 0 }} 
-                                allowFullScreen="" 
-                                loading="lazy" 
-                                className="grayscale hover:grayscale-0 transition-all duration-1000"
-                            ></iframe>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <div id="contacto-seccion">
-                <ContactForm />
-            </div>
+    <section className="section-pad">
+      <div className="container-page">
+        <SectionHeader badge="Proceso" title="Cómo funciona" subtitle="Sabé en todo momento qué pasa con tu equipo." />
+        <div className="grid md:grid-cols-3 gap-8">
+          {PASOS.map((p, i) => (
+            <FadeIn key={p.num} delay={i * 0.1}>
+              <div className="border-t-2 border-black pt-6">
+                <span className="text-4xl font-newtown text-neutral-200">{p.num}</span>
+                <h3 className="text-xl mt-2 mb-2">{p.title}</h3>
+                <p className="text-neutral-500 text-sm">{p.desc}</p>
+              </div>
+            </FadeIn>
+          ))}
         </div>
-    );
-};
+      </div>
+    </section>
+
+    <section className="section-pad bg-black text-white">
+      <div className="container-page">
+        <SectionHeader badge="Confianza" title="Por qué elegirnos" dark />
+        <Stagger className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+          {[
+            { t: '+20 años', s: 'Experiencia' },
+            { t: 'Garantía', s: 'Por escrito' },
+            { t: 'Repuestos', s: 'De calidad' },
+            { t: 'Seguimiento', s: 'Online' },
+          ].map((item) => (
+            <StaggerItem key={item.t} className="text-center">
+              <CheckCircle2 className="mx-auto mb-4 text-white/60" size={28} />
+              <h3 className="text-2xl text-white">{item.t}</h3>
+              <p className="text-neutral-500 text-xs uppercase tracking-widest mt-1">{item.s}</p>
+            </StaggerItem>
+          ))}
+        </Stagger>
+      </div>
+    </section>
+
+    <section className="section-pad border-y border-neutral-100">
+      <FadeIn className="container-page flex flex-col md:flex-row items-center justify-between gap-8 p-8 md:p-12 bg-neutral-50 rounded-3xl">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-black text-white rounded-xl"><Search size={24} /></div>
+          <div>
+            <h3 className="text-2xl mb-2">¿Ya tenés un ticket?</h3>
+            <p className="text-neutral-500 text-sm">Consultá el estado con tu código SJ-XXXX.</p>
+          </div>
+        </div>
+        <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="btn-primary shrink-0">
+          Ir al buscador
+        </a>
+      </FadeIn>
+    </section>
+
+    <section className="section-pad">
+      <div className="container-page grid md:grid-cols-2 gap-12 items-center">
+        <FadeIn>
+          <span className="badge mb-4">Ubicación</span>
+          <h2 className="text-4xl md:text-5xl mb-6">Estamos cerca tuyo</h2>
+          <p className="text-neutral-500 mb-8">Villa Crespo, Almagro y Palermo.</p>
+          <div className="flex items-center gap-4 p-5 border border-neutral-200 rounded-2xl">
+            <MapPin size={22} />
+            <div>
+              <p className="font-semibold">Av. Ángel Gallardo 1049</p>
+              <p className="text-sm text-neutral-500">Villa Crespo, CABA</p>
+            </div>
+          </div>
+        </FadeIn>
+        <FadeIn delay={0.1}>
+          <div className="h-80 rounded-2xl overflow-hidden border border-neutral-200 grayscale hover:grayscale-0 transition-all duration-700">
+            <iframe
+              title="Mapa"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3284.457876822831!2d-58.4357534!3d-34.6039572!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcca69584288b5%3A0x7d0130691523f66a!2sAv.%20%C3%81ngel%20Gallardo%201049!5e0!3m2!1ses-419!2sar!4v1710000000000"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              allowFullScreen
+            />
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+
+    <div id="contacto-seccion">
+      <ContactForm />
+    </div>
+  </div>
+);
 
 export default Home;

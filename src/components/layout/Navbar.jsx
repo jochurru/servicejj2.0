@@ -1,147 +1,206 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Hammer, AirVent, ShoppingBag, Menu, X, UserCircle, LogOut } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+
+const { span: MotionSpan, div: MotionDiv } = motion;
+import { Menu, X, UserCircle, LogOut } from 'lucide-react';
 import logojj from '../../assets/Logo.webp';
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from '../../hooks/useAuth';
+
+const LINKS = [
+  { to: '/servicio-tecnico', label: 'Servicio técnico' },
+  { to: '/climatizacion', label: 'Climatización' },
+  { to: '/ventas', label: 'Vidriera' },
+  { to: '/tecnico-online', label: 'Crear pedido' },
+];
+
+const NavLink = ({ to, label, isActive, onClick }) => (
+  <Link
+    to={to}
+    onClick={onClick}
+    className="relative group py-1 text-sm font-medium tracking-wide"
+  >
+    <span
+      className={`transition-colors duration-300 ${
+        isActive ? 'text-black' : 'text-zinc-500 group-hover:text-black'
+      }`}
+    >
+      {label}
+    </span>
+    <MotionSpan
+      className="absolute left-0 right-0 -bottom-0.5 h-px bg-black origin-left"
+      initial={false}
+      animate={{ scaleX: isActive ? 1 : 0 }}
+      whileHover={{ scaleX: 1 }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+    />
+  </Link>
+);
 
 const Navbar = () => {
-const { user, logout } = useAuth();
-const [isOpen, setIsOpen] = useState(false);
-const [isVisible, setIsVisible] = useState(true);
-const [lastScrollY, setLastScrollY] = useState(0);
+  const { user, logout } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
 
-const closeMenu = () => setIsOpen(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    window.addEventListener('scroll', onScroll);
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-useEffect(() => {
-const controlNavbar = () => {
-if (window.scrollY > lastScrollY && window.scrollY > 100) {
-setIsVisible(false);
-} else {
-setIsVisible(true);
-}
-setLastScrollY(window.scrollY);
-};
-window.addEventListener('scroll', controlNavbar);
-return () => window.removeEventListener('scroll', controlNavbar);
-}, [lastScrollY]);
+  const closeMenu = () => setIsOpen(false);
 
-return (
-<nav className={`fixed top-0 w-full bg-white border-b-4 border-black z-50 shadow-sm transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-<div className="max-w-7xl mx-auto px-4 h-24 flex items-center">
-
-{/* 1. AREA LOGO */}
-<div className="flex-1 flex justify-start">
-<Link
-to="/"
-onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); closeMenu(); }}
-className="flex items-center gap-3 group"
->
-<img src={logojj} alt="Service JJ Logo" className="h-14 md:h-16 w-auto object-contain transition-transform group-hover:scale-105" />
-<div className="flex flex-col leading-none">
-    <span className="font-newtown text-2xl md:text-3xl italic uppercase tracking-tighter text-black">
-    SERVICE <span className="text-black">JJ</span>
-    </span>
-    <span className="font-sans font-medium text-gray-500 uppercase text-[9px] tracking-widest -mt-1">
-    Ventas y Servicios Integrales
-    </span>
-</div>
-</Link>
-</div>
-
-{/* 2. LINKS AL CENTRO (Eje central optimizado) */}
-<div className="hidden lg:flex items-center justify-center gap-6"> 
-<Link to="/ventas" className="font-newtown italic uppercase text-lg flex items-center gap-4 text-black hover:text-emerald-500 transition-colors whitespace-nowrap">
-<ShoppingBag size={24} /> <span>Ventas</span>
-</Link>
-<Link to="/servicio-tecnico" className="font-newtown italic uppercase text-lg flex items-center gap-4 text-black hover:text-blue-600 transition-colors whitespace-nowrap">
-<Hammer size={24} /> <span>Servicio Técnico</span>
-</Link>
-<Link to="/climatizacion" className="font-newtown italic uppercase text-lg flex items-center gap-2 text-black hover:text-orange-500 transition-colors whitespace-nowrap">
-<AirVent size={24} /> <span>Climatización</span>
-</Link>
-</div>
-
-{/* 3. AREA USUARIO (Lado derecho ordenado) */}
-<div className="flex-1 flex justify-end items-right gap-4">
-{user ? (
-<div className="flex items-center gap-2">
-
-{/* Mis Reparaciones - Texto más chico (sm) */}
-    <Link
-    to="/mis-pedidos"
-    className="font-newtown italic uppercase text-wrap text-blue-700 hover:text-blue-900 transition-all whitespace-nowrap border-b-2 border-blue-200"
+  return (
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-500 ${
+        scrolled
+          ? 'bg-white/80 backdrop-blur-md border-zinc-200/50 shadow-[0_1px_0_0_rgba(0,0,0,0.04)]'
+          : 'bg-white/70 backdrop-blur-md border-zinc-200/50'
+      }`}
     >
-    Mis Reparaciones
-    </Link>
-<div className="h-10 w-0.5 bg-black/10"></div>
+      <MotionDiv
+        className="container-page h-18 md:h-20 flex items-center justify-between gap-6"
+        initial={{ y: -8, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <Link
+          to="/"
+          className="flex items-center gap-3 shrink-0 group"
+          onClick={closeMenu}
+        >
+          <img
+            src={logojj}
+            alt="Service JJ"
+            className="h-10 md:h-11 w-auto transition-transform duration-300 group-hover:scale-105"
+          />
+          <span className="font-newtown italic uppercase text-xl md:text-2xl tracking-tight text-black hidden sm:block leading-none">
+            Service JJ
+          </span>
+        </Link>
 
-    <div className="flex flex-col items-end leading-none">
-    <span className="font-newtown italic text-[10px] text-gray-400 uppercase">Hola,</span>
-    <span className="font-newtown italic text-xl uppercase text-blue-600">
-        {user.displayName?.split(' ')[0]}
-    </span>
-    </div>
+        <nav className="hidden lg:flex items-center gap-10" aria-label="Principal">
+          {LINKS.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              label={l.label}
+              isActive={location.pathname === l.to}
+            />
+          ))}
+        </nav>
 
-    <button onClick={logout} className="text-red-500 hover:scale-110 transition-transform">
-    <LogOut size={24} />
-    </button>
-</div>
-) : (
-<Link to="/login" className="font-newtown italic uppercase flex items-center gap-2 border-2 border-black px-4 py-2 hover:bg-black hover:text-white transition-all text-black">
-    <UserCircle size={24} />
-    <span>Ingresar</span>
-</Link>
-)}
-</div>
-
-        {/* BOTÓN HAMBURGUESA */}
-        <button onClick={() => setIsOpen(!isOpen)} className="lg:hidden text-black p-2">
-        {isOpen ? <X size={32} /> : <Menu size={32} />}
-        </button>
-    </div>
-
-
-    {/* MENÚ MÓVIL DINÁMICO */}
-    <div className={`lg:hidden bg-white border-b-4 border-black transition-all duration-300 overflow-hidden ${isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
-    <div className="flex flex-col p-6 gap-6">
-        {user ? (
-        <div className="flex flex-col gap-4 border-b-2 border-slate-100 pb-4">
-            <span className="font-newtown italic uppercase text-2xl text-blue-600 leading-none">
-            Hola, {user.displayName?.split(' ')[0]}
-            </span>
+        <div className="hidden lg:flex items-center gap-5">
+          {user ? (
+            <>
+              <NavLink
+                to="/mis-pedidos"
+                label="Mis reparaciones"
+                isActive={location.pathname === '/mis-pedidos'}
+              />
+              <span className="h-4 w-px bg-zinc-200" aria-hidden />
+              <span className="text-xs uppercase tracking-widest text-zinc-400">
+                {user.displayName?.split(' ')[0]}
+              </span>
+              <button
+                type="button"
+                onClick={logout}
+                className="p-2.5 rounded-full border border-zinc-200 text-zinc-600 hover:border-black hover:text-black hover:bg-black/5 transition-all duration-300"
+                aria-label="Cerrar sesión"
+              >
+                <LogOut size={18} />
+              </button>
+            </>
+          ) : (
             <Link
-            to="/mis-pedidos"
-            onClick={closeMenu}
-            className="font-newtown italic uppercase text-xl text-black flex items-center gap-2"
+              to="/login"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium uppercase tracking-wider border border-black rounded-full hover:bg-black hover:text-white transition-all duration-300"
             >
-            <Hammer size={20} className="text-blue-600" /> Mis Reparaciones
+              <UserCircle size={17} />
+              Ingresar
             </Link>
-            <button onClick={logout} className="flex items-center gap-2 text-red-500 font-bold uppercase text-sm">
-            SALIR <LogOut size={20} />
-            </button>
+          )}
         </div>
-        ) : (
-        <Link to="/login" onClick={closeMenu} className="font-newtown italic uppercase text-2xl flex items-center gap-4 text-black border-b-2 border-slate-100 pb-2">
-            <UserCircle size={24} /> Ingresar
-        </Link>
-        )}
 
-        <Link to="/ventas" onClick={closeMenu} className="font-newtown italic uppercase text-2xl flex items-center gap-4 text-emerald-500">
-        <ShoppingBag size={24} /> Ventas
-        </Link>
-        <Link to="/servicio-tecnico" onClick={closeMenu} className="font-newtown italic uppercase text-2xl flex items-center gap-4 text-blue-600">
-        <Hammer size={24} /> Servicio Técnico
-        </Link>
-        <Link to="/climatizacion" onClick={closeMenu} className="font-newtown italic uppercase text-2xl flex items-center gap-4 text-orange-500">
-        <AirVent size={24} /> Climatización
-        </Link>
-        <a href="#contacto-seccion" onClick={closeMenu} className="font-newtown italic uppercase bg-black text-white text-center py-4 text-xl border-b-4 border-gray-600">
-        Contacto
-        </a>
-    </div>
-    </div>
-</nav>
-);
+        <button
+          type="button"
+          className="lg:hidden p-2 -mr-2 text-black hover:opacity-60 transition-opacity"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={isOpen}
+        >
+          {isOpen ? <X size={26} strokeWidth={1.5} /> : <Menu size={26} strokeWidth={1.5} />}
+        </button>
+      </MotionDiv>
+
+      <AnimatePresence>
+        {isOpen && (
+          <MotionDiv
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="lg:hidden overflow-hidden border-t border-zinc-200/50 bg-white/90 backdrop-blur-lg"
+          >
+            <nav className="container-page py-6 flex flex-col gap-1" aria-label="Móvil">
+              {LINKS.map((l, i) => (
+                <MotionDiv
+                  key={l.to}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05, duration: 0.3 }}
+                >
+                  <Link
+                    to={l.to}
+                    onClick={closeMenu}
+                    className={`block py-3 text-lg font-medium tracking-wide border-b border-zinc-100 transition-colors ${
+                      location.pathname === l.to ? 'text-black' : 'text-zinc-500'
+                    }`}
+                  >
+                    {l.label}
+                  </Link>
+                </MotionDiv>
+              ))}
+              <div className="pt-4 mt-2 border-t border-zinc-200/50">
+                {user ? (
+                  <div className="space-y-3">
+                    <Link
+                      to="/mis-pedidos"
+                      onClick={closeMenu}
+                      className="block py-2 text-base font-medium text-black"
+                    >
+                      Mis reparaciones
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeMenu();
+                        logout();
+                      }}
+                      className="text-sm uppercase tracking-widest text-zinc-500 hover:text-black transition-colors"
+                    >
+                      Salir
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    to="/login"
+                    onClick={closeMenu}
+                    className="flex items-center justify-center gap-2 w-full py-3.5 text-sm font-medium uppercase tracking-wider bg-black text-white rounded-full"
+                  >
+                    <UserCircle size={18} />
+                    Ingresar
+                  </Link>
+                )}
+              </div>
+            </nav>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+    </header>
+  );
 };
 
 export default Navbar;

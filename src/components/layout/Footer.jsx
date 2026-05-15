@@ -1,141 +1,150 @@
 import { Link } from 'react-router-dom';
-// Iconos de utilidad (Lucide)
-import { Phone, Mail, MapPin, ShieldCheck } from 'lucide-react';
-// Iconos de marca (React Icons - Font Awesome)
+import { Phone, Mail, MapPin, ArrowUpRight } from 'lucide-react';
 import { FaInstagram, FaFacebookF } from 'react-icons/fa';
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from '../../hooks/useAuth';
+
+const footerLinkClass =
+  'group inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white transition-colors duration-300';
 
 const Footer = () => {
-const user = useAuth().user; // Para mostrar enlace "Mis Reparaciones" solo si hay usuario
-const currentYear = new Date().getFullYear();
+  const { user } = useAuth();
+  const year = new Date().getFullYear();
 
+  return (
+    <footer className="relative bg-zinc-950 text-zinc-400 overflow-hidden">
+      <div
+        className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(255,255,255,0.06),transparent)] pointer-events-none"
+        aria-hidden
+      />
 
-return (
-<footer className="bg-slate-900 text-white pt-16 pb-8 px-4">
-    <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-slate-800 pb-12">
-    
-    {/* COLUMNA 1: MARCA Y REDES */}
-    <div className="flex flex-col gap-4">
-        <h2 className="font-newtown text-3xl italic uppercase leading-none">
-        Service <span className="text-blue-500">JJ</span>   
-        </h2>
-        <p className="text-slate-400 text-sm leading-relaxed">
-        Especialistas en climatización y servicio técnico integral. 
-        Soluciones rápidas con garantía escrita en Villa Crespo y CABA.
-        </p>
-        
-        {/* BOTONES DE REDES SOCIALES */}
-        <div className="flex gap-3 mt-2">
-        <a 
-            href="https://www.instagram.com/servicejj.ok/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="p-2.5 rounded-full bg-slate-800 text-slate-300 hover:bg-pink-600 hover:text-white transition-all duration-300 flex items-center justify-center"
-            title="Instagram"
-        >
-            <FaInstagram size={18} />
-        </a>
-        <a 
-            href="https://www.facebook.com/p/SERVICE-JJ-100063529391770/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="p-2.5 rounded-full bg-slate-800 text-slate-300 hover:bg-blue-600 hover:text-white transition-all duration-300 flex items-center justify-center"
-            title="Facebook"
-        >
-            <FaFacebookF size={18} />
-        </a>
-        </div>
-    </div>
-
-{/* COLUMNA 2: NAVEGACIÓN RÁPIDA */}
-<div>
-    <h3 className="font-newtown text-lg italic uppercase mb-6 text-blue-500 tracking-tight">Secciones</h3>
-    <ul className="flex flex-col gap-3 text-slate-300 text-sm">
-        <li>
-            <Link 
-                to="/" 
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
-                className="hover:text-white transition-colors"
-            >
-                Inicio
+      <div className="container-page relative pt-16 md:pt-20 pb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8 pb-14 border-b border-zinc-800/80">
+          <div className="lg:col-span-4">
+            <Link to="/" className="inline-block group">
+              <h2 className="font-newtown italic uppercase text-3xl md:text-4xl text-white tracking-tight leading-none group-hover:opacity-80 transition-opacity duration-300">
+                Service JJ
+              </h2>
             </Link>
-        </li>
-        <li><Link to="/ventas" className="hover:text-white transition-colors">Ventas</Link></li>
-        <li><Link to="/servicio-tecnico" className="hover:text-white transition-colors">Servicio Técnico</Link></li>
-        <li><Link to="/climatizacion" className="hover:text-white transition-colors">Climatización</Link></li>
-        
-        {/* ✨ SOLO SE MUESTRA SI HAY USUARIO */}
-        {user && (
-            <li>
-                <Link 
-                    to="/mis-pedidos" 
-                    className="hover:text-white transition-colors italic text-blue-400 font-medium"
-                >
-                    Mis Reparaciones
-                </Link>
-            </li>
-        )}
-    </ul>
-</div>
-
-    {/* COLUMNA 3: CONTACTO DIRECTO */}
-    <div>
-        <h3 className="font-newtown text-lg italic uppercase mb-6 text-blue-500 tracking-tight">Contacto</h3>
-        <ul className="flex flex-col gap-4 text-slate-300 text-sm">
-        <li className="flex items-start gap-3">
-            <Phone size={16} className="text-blue-500 mt-1" /> 
-            <div className="flex flex-col">
-            <a href="tel:5491151765077" className="hover:text-white transition-colors">11 5176-5077</a>
-            <a href="tel:5491151765098" className="hover:text-white transition-colors">11 5176-5098</a> 
+            <p className="mt-5 text-sm leading-relaxed text-zinc-500 max-w-xs">
+              Servicio técnico y climatización en CABA. Garantía escrita y seguimiento digital de tu reparación.
+            </p>
+            <div className="flex gap-3 mt-8">
+              <a
+                href="https://www.instagram.com/servicejj.ok/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-400 hover:border-white hover:bg-white hover:text-black transition-all duration-300"
+                aria-label="Instagram"
+              >
+                <FaInstagram size={16} />
+              </a>
+              <a
+                href="https://www.facebook.com/p/SERVICE-JJ-100063529391770/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 text-zinc-400 hover:border-white hover:bg-white hover:text-black transition-all duration-300"
+                aria-label="Facebook"
+              >
+                <FaFacebookF size={16} />
+              </a>
             </div>
-        </li>
-        <li className="flex items-center gap-3">
-            <Mail size={16} className="text-blue-500" /> 
-            <a href="mailto:servicejjok@gmail.com" className="hover:text-white transition-colors italic text-xs">
-            servicejjok@gmail.com
-            </a>
-        </li>
-        <li className="flex items-start gap-3">
-            <MapPin size={16} className="text-blue-500 mt-1" /> 
-            <a 
-            href="https://maps.app.goo.gl/WGSrYMUHPNFZjP358" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="hover:text-white transition-colors leading-tight"
-            >
-            Av. Ángel Gallardo 1049, <br />
-            Villa Crespo, CABA
-            </a>
-        </li>
-        </ul>
-    </div>
+          </div>
 
-    {/* COLUMNA 4: LEGAL / CONFIANZA */}
-    <div>
-        <h3 className="font-newtown text-lg italic uppercase mb-6 text-blue-500 tracking-tight">Legal</h3>
-        <ul className="flex flex-col gap-3 text-slate-300 text-sm">
-        <li>
-            <Link to="/privacidad" className="flex items-center gap-2 hover:text-white transition-colors">
-            <ShieldCheck size={14} /> Política de Privacidad
-            </Link>
-        </li>
-        <li><Link to="/terminos" className="hover:text-white transition-colors">Términos y Condiciones</Link></li>
-        <li className="mt-4 border-t border-slate-800 pt-4">
-            <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">
-            Matrícula Profesional: #115176
-            </span>
-        </li>
-        </ul>
-    </div>
-    </div>
+          <div className="lg:col-span-3 lg:col-start-6">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.25em] text-zinc-500 mb-6">
+              Servicios
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/servicio-tecnico" className={footerLinkClass}>
+                  Servicio técnico
+                  <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/climatizacion" className={footerLinkClass}>
+                  Climatización
+                  <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/ventas" className={footerLinkClass}>
+                  Vidriera
+                  <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/tecnico-online" className={footerLinkClass}>
+                  Crear pedido
+                  <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </Link>
+              </li>
+              {user && (
+                <li>
+                  <Link to="/mis-pedidos" className={footerLinkClass}>
+                    Mis reparaciones
+                    <ArrowUpRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </Link>
+                </li>
+              )}
+            </ul>
+          </div>
 
-    {/* BARRA INFERIOR DE CRÉDITOS */}
-    <div className="max-w-7xl mx-auto pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] text-slate-500 uppercase tracking-widest font-medium">
-    <p>© {currentYear} Service JJ - Todos los derechos reservados.</p>
-    <p>Desarrollado por <span className="text-slate-300 italic">Jonatan Churruarin</span></p>
-    </div>
-</footer>
-);
+          <div className="lg:col-span-3">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.25em] text-zinc-500 mb-6">
+              Contacto
+            </h3>
+            <ul className="space-y-4 text-sm">
+              <li>
+                <a href="tel:5491151765077" className={footerLinkClass}>
+                  <Phone size={15} className="shrink-0 text-zinc-600 group-hover:text-white transition-colors" />
+                  11 5176-5077
+                </a>
+              </li>
+              <li>
+                <a href="mailto:servicejjok@gmail.com" className={footerLinkClass}>
+                  <Mail size={15} className="shrink-0 text-zinc-600 group-hover:text-white transition-colors" />
+                  servicejjok@gmail.com
+                </a>
+              </li>
+              <li className="flex gap-2 text-zinc-500 leading-relaxed">
+                <MapPin size={15} className="shrink-0 mt-0.5 text-zinc-600" />
+                <span>Av. Ángel Gallardo 1049, Villa Crespo, CABA</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="lg:col-span-2">
+            <h3 className="text-[10px] font-semibold uppercase tracking-[0.25em] text-zinc-500 mb-6">
+              Legal
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/privacidad" className={footerLinkClass}>
+                  Privacidad
+                </Link>
+              </li>
+              <li>
+                <Link to="/terminos" className={footerLinkClass}>
+                  Términos
+                </Link>
+              </li>
+              <li>
+                <Link to="/" className={footerLinkClass}>
+                  Inicio
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="pt-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] uppercase tracking-[0.2em] text-zinc-600">
+          <p>© {year} Service JJ — Todos los derechos reservados</p>
+          <p className="text-zinc-700">Villa Crespo · Buenos Aires</p>
+        </div>
+      </div>
+    </footer>
+  );
 };
 
 export default Footer;
