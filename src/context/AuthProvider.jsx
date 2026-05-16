@@ -24,7 +24,8 @@ export const AuthProvider = ({ children }) => {
                 try {
                     await ensureUserProfile(currentUser);
                 } catch (err) {
-                    console.error('Error al sincronizar perfil:', err);
+                    // ESTA LÍNEA ES CLAVE: Te va a decir si Firebase te rechaza por permisos o reglas
+                    console.error('¡ATENCIÓN! Error real de Firestore al sincronizar perfil:', err);
                 }
             }
             setUser(currentUser);

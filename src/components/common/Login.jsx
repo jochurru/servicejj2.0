@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { auth, provider } from '../../services/firebaseConfig';
-import { signInWithRedirect } from 'firebase/auth';
+import { signInWithPopup } from 'firebase/auth'; // <-- Cambiado a signInWithPopup
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { ensureUserProfile } from '../../utils/ensureUserProfile'; // <-- Importamos el helper directo
 
 const Login = () => {
     const navigate = useNavigate();
@@ -15,10 +16,26 @@ const Login = () => {
     }, [user, loading, from, navigate]);
 
     const iniciarSesion = () => {
-        signInWithRedirect(auth, provider).catch((error) => {
-            console.error('Error al iniciar sesión:', error);
-            alert('Hubo un problema al iniciar sesión. Por favor, intentá de nuevo.');
-        });
+        console.log("[Login] Iniciando sesión con Popup...");
+        signInWithPopup(auth, provider)
+            .then(async (result) => {
+                console.log("[Login] ¡Éxito de Google Auth! Usuario:", result.user.email);
+                
+                // FORZAMOS la escritura en Firestore acá mismo, sin esperar al AuthProvider
+                try {
+                    console.log("[Login] Forzando ejecución de ensureUserProfile...");
+                    await ensureUserProfile(result.user);
+                    console.log("[Login] Sincronización con Firestore exitosa.");
+                } catch (dbError) {
+                    console.error("[Login] Error al guardar en Firestore:", dbError);
+                }
+
+                navigate(from, { replace: true });
+            })
+            .catch((error) => {
+                console.error('Error al iniciar sesión por Popup:', error);
+                alert('Hubo un problema al iniciar sesión. Por favor, intentá de nuevo.');
+            });
     };
 
     return (

@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
 
 export async function ensureUserProfile(user) {
@@ -8,15 +8,23 @@ export async function ensureUserProfile(user) {
     const snap = await getDoc(userRef);
 
     if (!snap.exists()) {
+        // USUARIO NUEVO
         await setDoc(userRef, {
+            uid: user.uid,                     
             nombre: user.displayName || '',
             email: user.email || '',
             foto: user.photoURL || '',
-            role: 'client',
+            rol: 'cliente',                     
             fechaRegistro: serverTimestamp(),
             ultimoAcceso: serverTimestamp(),
         });
+        console.log(`[Firestore] Perfil creado para el nuevo usuario: ${user.email}`);
     } else {
-        await setDoc(userRef, { ultimoAcceso: serverTimestamp() }, { merge: true });
+        // USUARIO EXISTENTE
+        // Usamos updateDoc que es más óptimo y seguro que setDoc con merge para actualizar un solo campo
+        await updateDoc(userRef, { 
+            ultimoAcceso: serverTimestamp() 
+        });
+        console.log(`[Firestore] Último acceso actualizado para: ${user.email}`);
     }
 }
