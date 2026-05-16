@@ -1,8 +1,31 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { auth } from './firebaseConfig';
+
+const API_BASE = String(import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 const API_KEY = import.meta.env.VITE_SERVICE_JJ_API_KEY;
 
+function apiUrl(path) {
+    if (!API_BASE) {
+        throw new Error(
+            'Falta VITE_API_URL en .env del frontend (ej. http://localhost:5000/api)'
+        );
+    }
+    const p = path.startsWith('/') ? path : `/${path}`;
+    return `${API_BASE}${p}`;
+}
+
 async function parseResponse(response) {
-    const data = await response.json().catch(() => ({}));
+    const contentType = response.headers.get('content-type') || '';
+    const text = await response.text();
+    const isJson = contentType.includes('application/json');
+
+    let data = {};
+    if (text) {
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = {};
+        }
+    }
 
     if (!response.ok) {
         const mensaje =
@@ -16,7 +39,36 @@ async function parseResponse(response) {
         throw error;
     }
 
+    if (!isJson && text && text.trimStart().startsWith('<')) {
+        const err = new Error(
+            'La API devolvió HTML en lugar de JSON. Revisá VITE_API_URL (debe apuntar al backend, ej. http://localhost:5000/api).'
+        );
+        err.status = response.status;
+        throw err;
+    }
+
     return data;
+}
+
+async function getAdminToken() {
+    const user = auth.currentUser;
+    if (!user) throw new Error('Debes iniciar sesión como administrador');
+    return user.getIdToken();
+}
+
+async function adminFetch(path, options = {}) {
+    const token = await getAdminToken();
+    const headers = {
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+    };
+
+    const response = await fetch(apiUrl(path), {
+        ...options,
+        headers,
+    });
+
+    return parseResponse(response);
 }
 
 function authHeaders(extra = {}) {
@@ -34,23 +86,19 @@ function normalizeTicket(idCorto) {
 export const serviceApi = {
     buscarPedido: async (idCorto) => {
         const ticketLimpio = normalizeTicket(idCorto);
-        const response = await fetch(
-            `${API_BASE_URL}/pedidos/ticket/${encodeURIComponent(ticketLimpio)}`,
-            { headers: authHeaders() }
-        );
-        const data = await parseResponse(response);
+        const data = await adminFetch(`/pedidos/ticket/${encodeURIComponent(ticketLimpio)}`);
         return data.pedido;
     },
 
     getPedidos: async () => {
-        const response = await fetch(`${API_BASE_URL}/pedidos`, {
-            headers: authHeaders(),
-        });
-        return parseResponse(response);
+        const data = await adminFetch('/pedidos');
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data?.pedidos)) return data.pedidos;
+        return [];
     },
 
     createPedido: async (formData) => {
-        const response = await fetch(`${API_BASE_URL}/pedidos`, {
+        const response = await fetch(apiUrl('/pedidos'), {
             method: 'POST',
             headers: authHeaders(),
             body: formData,
@@ -58,33 +106,26 @@ export const serviceApi = {
         return parseResponse(response);
     },
 
-    updatePedido: async (id, body) => {
-        const response = await fetch(`${API_BASE_URL}/pedidos/${id}`, {
+    updatePedido: async (id, body) =>
+        adminFetch(`/pedidos/${encodeURIComponent(id)}`, {
             method: 'PUT',
-            headers: authHeaders({ 'Content-Type': 'application/json' }),
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
-        });
-        return parseResponse(response);
-    },
+        }),
 
-    deletePedido: async (id) => {
-        const response = await fetch(`${API_BASE_URL}/pedidos/${id}`, {
-            method: 'DELETE',
-            headers: authHeaders(),
-        });
-        return parseResponse(response);
-    },
+    deletePedido: async (id) =>
+        adminFetch(`/pedidos/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
     consultarSeguimiento: async (idCorto) => {
         const ticketLimpio = normalizeTicket(idCorto);
         const response = await fetch(
-            `${API_BASE_URL}/pedidos/seguimiento/${encodeURIComponent(ticketLimpio)}`
+            apiUrl(`/pedidos/seguimiento/${encodeURIComponent(ticketLimpio)}`)
         );
         return parseResponse(response);
     },
 
     reclamarPedidos: async (data) => {
-        const response = await fetch(`${API_BASE_URL}/pedidos/reclamar`, {
+        const response = await fetch(apiUrl('/pedidos/reclamar'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -102,6 +143,41 @@ export const serviceApi = {
         }
         return result;
     },
+
+    enviarConsultaContacto: async ({ nombre, email, mensaje }) => {
+        const response = await fetch(apiUrl('/contact'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...authHeaders(),
+            },
+            body: JSON.stringify({ nombre, email, mensaje }),
+        });
+        return parseResponse(response);
+    },
+
+    getProductosPublicos: async () => {
+        const response = await fetch(apiUrl('/productos'));
+        const data = await parseResponse(response);
+        return data.productos || [];
+    },
+
+    getProductosAdmin: async () => {
+        const data = await adminFetch('/productos');
+        if (!Array.isArray(data.productos)) {
+            throw new Error('Respuesta inválida: no se recibió la lista de productos');
+        }
+        return data.productos;
+    },
+
+    createProducto: async (formData) =>
+        adminFetch('/productos', { method: 'POST', body: formData }),
+
+    updateProducto: async (id, formData) =>
+        adminFetch(`/productos/${encodeURIComponent(id)}`, { method: 'PUT', body: formData }),
+
+    deleteProducto: async (id) =>
+        adminFetch(`/productos/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };
 
 export { normalizeTicket };

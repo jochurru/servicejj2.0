@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { serviceApi } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import { Wrench, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Wrench, AlertTriangle } from 'lucide-react';
+import PedidoQR from '../components/common/PedidoQR';
 
 
 const Seguimiento = () => {
@@ -75,7 +76,9 @@ const Seguimiento = () => {
                     
                     <div className="relative z-10">
                         <div className="flex flex-col md:flex-row justify-between items-start mb-10 gap-6">
-                            <div>
+                            <div className="flex flex-col sm:flex-row gap-6 items-start">
+                                <PedidoQR pedido={pedido} size="sm" />
+                                <div>
                                 <span className="bg-blue-600 text-white px-4 py-1 rounded-2xl text-[10px] font-bold uppercase italic">
                                     Service JJ Oficial
                                 </span>
@@ -83,6 +86,7 @@ const Seguimiento = () => {
                                     {pedido.equipo}
                                 </h1>
                                 <p className="text-slate-400 text-xs font-bold mt-2 tracking-widest">TICKET: {pedido.idCorto}</p>
+                                </div>
                             </div>
                             
                             <div className="bg-black text-white p-4 rounded-2xl text-center shadow-[4px_4px_0px_0px_rgba(37,99,235,1)]">

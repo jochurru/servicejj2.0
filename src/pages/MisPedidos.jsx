@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import { Hammer, Clock, CheckCircle, Wrench } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { serviceApi } from '../services/api';
+import PedidoQR from '../components/common/PedidoQR';
 
 const MisPedidos = () => {
     const { user, loading: authLoading } = useAuth();
@@ -25,15 +26,12 @@ const MisPedidos = () => {
             try {
                 // 1. Intentamos sincronizar los pedidos huérfanos con el backend
                 try {
-                    const result = await serviceApi.reclamarPedidos({
+                    await serviceApi.reclamarPedidos({
                         email: user.email,
                         clienteId: user.uid,
                     });
-                    if (result.success) {
-                        console.log(result.message || 'Pedidos vinculados correctamente.');
-                    }
                 } catch {
-                    console.log('No se pudo conectar con el endpoint de reclamo. Continuando...');
+                    /* endpoint de reclamo opcional */
                 }
 
                 // 2. Buscamos en Firestore los pedidos asociados al usuario.
@@ -103,7 +101,9 @@ const MisPedidos = () => {
                             
                             <div className="relative z-10">
                                 <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
-                                    <div>
+                                    <div className="flex flex-col sm:flex-row gap-6 items-start">
+                                        <PedidoQR pedido={pedido} size="sm" />
+                                        <div>
                                         <span className="bg-blue-600 text-white px-4 py-1 rounded-2xl text-[10px] font-bold uppercase italic">
                                             Service JJ Oficial
                                         </span>
@@ -111,6 +111,7 @@ const MisPedidos = () => {
                                             {pedido.equipo}
                                         </h2>
                                         <p className="text-slate-400 text-xs font-bold mt-2 tracking-widest">TICKET: {pedido.idCorto || pedido.id}</p>
+                                        </div>
                                     </div>
                                     
                                     {/* Badge de Estado con estilo de Seguimiento */}

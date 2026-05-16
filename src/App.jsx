@@ -1,9 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/layout/Navbar.jsx";
 import Home from "./pages/Home.jsx";
 import Ventas from "./pages/Ventas.jsx";
 import ServicioTecnico from "./pages/ServicioTecnico.jsx";
-import Climatizacion from "./pages/Climatizacion.jsx"; 
+import Climatizacion from "./pages/Climatizacion.jsx";
 import Footer from "./components/layout/Footer.jsx";
 import Terminos from "./pages/Terminos.jsx";
 import Privacidad from "./pages/Privacidad.jsx";
@@ -13,9 +13,12 @@ import ScrollToTopButton from "./components/common/ScrollToTopButton.jsx";
 import TecnicoOnline from "./pages/TecnicoOnline.jsx";
 import Login from "./components/common/Login.jsx";
 import MisPedidos from "./pages/MisPedidos.jsx";
-import Seguimiento from "./pages/Seguimiento.jsx"; 
+import Seguimiento from "./pages/Seguimiento.jsx";
 import AdminWizard from "./pages/AdminWizard.jsx";
-import AdminRoute from "./components/common/AdminRoute.jsx";
+import ProtectedRoute from "./components/common/ProtectedRoute.jsx";
+import AdminShell from "./components/admin/AdminShell.jsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
+import AdminComercial from "./pages/admin/AdminComercial.jsx";
 
 function App() {
   return (
@@ -28,26 +31,31 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/mis-pedidos" element={<MisPedidos />} />
-            
-            {/* 📍 RUTA CLAVE: Seguimiento público (Para el buscador del Home y QR) */}
             <Route path="/seguimiento/:idCorto" element={<Seguimiento />} />
-            
-            {/* 🛠️ RUTA DE ADMIN: Administrador de taller */}
+
             <Route
-              path="/admin-wizard"
+              path="/admin"
               element={
-                <AdminRoute>
-                  <AdminWizard />
-                </AdminRoute>
+                <ProtectedRoute>
+                  <AdminShell />
+                </ProtectedRoute>
               }
-            />
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="wizard" element={<AdminWizard />} />
+              <Route path="comercial" element={<AdminComercial />} />
+            </Route>
+
+            <Route path="/admin-wizard" element={<Navigate to="/admin/wizard" replace />} />
 
             <Route path="/terminos" element={<Terminos />} />
             <Route path="/privacidad" element={<Privacidad />} />
             <Route path="/ventas" element={<Ventas />} />
             <Route path="/servicio-tecnico" element={<ServicioTecnico />} />
-            <Route path="/climatizacion" element={<Climatizacion />} />  
-            <Route path="/tecnico-online" element={<TecnicoOnline />} />           
+            <Route path="/climatizacion" element={<Climatizacion />} />
+            <Route path="/tecnico-online" element={<TecnicoOnline />} />
+
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
         <Footer />

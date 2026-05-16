@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { serviceApi } from '../services/api';
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { Search, Save, QrCode, X, Wrench, ClipboardList } from 'lucide-react';
 import Swal from 'sweetalert2';
+import PedidoQR from '../components/common/PedidoQR';
 
 const AdminWizard = () => {
+    const [searchParams] = useSearchParams();
     const [busqueda, setBusqueda] = useState("");
     const [pedido, setPedido] = useState(null);
     const [nuevaNota, setNuevaNota] = useState("");
@@ -31,6 +34,15 @@ const AdminWizard = () => {
             setLoading(false);
         }
     }, []);
+
+    useEffect(() => {
+        const ticket = searchParams.get('ticket');
+        if (ticket) {
+            const id = ticket.toUpperCase();
+            setBusqueda(id);
+            ejecutarBusquedaRapida(id);
+        }
+    }, [searchParams, ejecutarBusquedaRapida]);
 
     useEffect(() => {
         let scanner = null;
@@ -153,8 +165,10 @@ const AdminWizard = () => {
             {/* FORMULARIO DE EDICIÓN */}
             {pedido ? (
                 <div className="bg-white rounded-[50px] p-8 md:p-12 shadow-2xl border border-slate-100 transition-all space-y-8">
-                    <div className="flex justify-between items-start mb-8">
-                        <div>
+                    <div className="flex flex-col lg:flex-row gap-8 mb-8">
+                        <PedidoQR pedido={pedido} size="md" className="shrink-0" />
+                        <div className="flex-1 flex flex-col sm:flex-row justify-between gap-4">
+                            <div>
                             <span className="text-blue-600 font-black uppercase text-[10px] tracking-[0.3em]">Pedido Identificado</span>
                             <h2 className="font-newtown text-4xl italic uppercase text-slate-900">{pedido.equipo}</h2>
                             <p className="text-slate-400 font-bold italic">{pedido.modelo || 'Sin modelo'}</p>
@@ -163,6 +177,7 @@ const AdminWizard = () => {
                             {pedido.idCorto?.startsWith('SJ-')
                                 ? pedido.idCorto
                                 : `SJ-${pedido.idCorto || pedido.id}`}
+                        </div>
                         </div>
                     </div>
 

@@ -3,6 +3,7 @@ import Swal from 'sweetalert2';
 import { Send } from 'lucide-react';
 import SectionHeader from '../ui/SectionHeader';
 import { FadeIn } from '../ui/FadeIn';
+import { serviceApi } from '../../services/api';
 
 const ContactForm = () => {
   const [formData, setFormData] = useState({ nombre: '', email: '', mensaje: '' });
@@ -11,15 +12,29 @@ const ContactForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSending(true);
-    await new Promise((r) => setTimeout(r, 600));
-    Swal.fire({
-      title: '¡Consulta enviada!',
-      text: 'Te responderemos en menos de 24 horas.',
-      icon: 'success',
-      confirmButtonColor: '#000',
-    });
-    setFormData({ nombre: '', email: '', mensaje: '' });
-    setSending(false);
+    try {
+      await serviceApi.enviarConsultaContacto({
+        nombre: formData.nombre,
+        email: formData.email,
+        mensaje: formData.mensaje,
+      });
+      Swal.fire({
+        title: '¡Consulta enviada!',
+        text: 'Te responderemos en menos de 24 horas.',
+        icon: 'success',
+        confirmButtonColor: '#000',
+      });
+      setFormData({ nombre: '', email: '', mensaje: '' });
+    } catch (err) {
+      Swal.fire({
+        title: 'No se pudo enviar',
+        text: err.message || 'Probá de nuevo en unos minutos.',
+        icon: 'error',
+        confirmButtonColor: '#000',
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

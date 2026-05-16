@@ -1,25 +1,43 @@
-import { useEffect, useState } from "react";
-import { auth } from "../services/firebaseConfig";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { AuthContext } from "./AuthContext"; // Importamos el canal que creamos recién
+import { useEffect, useState } from 'react';
+import { auth } from '../services/firebaseConfig';
+import { getRedirectResult, onAuthStateChanged, signOut } from 'firebase/auth';
+import { AuthContext } from './AuthContext';
+import { ensureUserProfile } from '../utils/ensureUserProfile';
 
 export const AuthProvider = ({ children }) => {
-const [user, setUser] = useState(null);
-const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    setUser(currentUser);
-    setLoading(false);
-});
-return () => unsubscribe();
-}, []);
+    useEffect(() => {
+        getRedirectResult(auth)
+            .then(async (result) => {
+                if (result?.user) await ensureUserProfile(result.user);
+            })
+            .catch((err) => {
+                console.error('Error tras redirect de Google:', err);
+            });
+    }, []);
 
-const logout = () => signOut(auth);
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+                try {
+                    await ensureUserProfile(currentUser);
+                } catch (err) {
+                    console.error('Error al sincronizar perfil:', err);
+                }
+            }
+            setUser(currentUser);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, []);
 
-return (
-<AuthContext.Provider value={{ user, logout, loading }}>
-    {!loading && children}
-</AuthContext.Provider>
-);
+    const logout = () => signOut(auth);
+
+    return (
+        <AuthContext.Provider value={{ user, logout, loading }}>
+            {!loading && children}
+        </AuthContext.Provider>
+    );
 };

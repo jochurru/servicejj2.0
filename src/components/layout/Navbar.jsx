@@ -6,6 +6,7 @@ const { span: MotionSpan, div: MotionDiv } = motion;
 import { Menu, X, UserCircle, LogOut } from 'lucide-react';
 import logojj from '../../assets/Logo.webp';
 import { useAuth } from '../../hooks/useAuth';
+import { useAdmin } from '../../hooks/useAdmin';
 
 const LINKS = [
   { to: '/servicio-tecnico', label: 'Servicio técnico' },
@@ -39,6 +40,7 @@ const NavLink = ({ to, label, isActive, onClick }) => (
 
 const Navbar = () => {
   const { user, logout } = useAuth();
+  const { isAdmin } = useAdmin();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
@@ -95,6 +97,13 @@ const Navbar = () => {
         <div className="hidden lg:flex items-center gap-5">
           {user ? (
             <>
+              {isAdmin && (
+                <NavLink
+                  to="/admin"
+                  label="Panel admin"
+                  isActive={location.pathname.startsWith('/admin')}
+                />
+              )}
               <NavLink
                 to="/mis-pedidos"
                 label="Mis reparaciones"
@@ -166,6 +175,15 @@ const Navbar = () => {
               <div className="pt-4 mt-2 border-t border-zinc-200/50">
                 {user ? (
                   <div className="space-y-3">
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={closeMenu}
+                        className="block py-2 text-base font-medium text-black"
+                      >
+                        Panel admin
+                      </Link>
+                    )}
                     <Link
                       to="/mis-pedidos"
                       onClick={closeMenu}

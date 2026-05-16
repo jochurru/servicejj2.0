@@ -3,35 +3,16 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
 import { useAuth } from './useAuth';
 
-const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter((email) => email && email !== 'tucorreo@admin.com');
-
-export function isAdminUser(user) {
-    if (!user?.email) return false;
-    if (adminEmails.length > 0) {
-        return adminEmails.includes(user.email.toLowerCase());
-    }
-    return false;
-}
-
 export function useAdmin() {
     const { user, loading: authLoading } = useAuth();
-    const [isAdmin, setIsAdmin] = useState(false);
+    const [role, setRole] = useState(null);
     const [checking, setChecking] = useState(true);
 
     useEffect(() => {
         if (authLoading) return;
 
         if (!user) {
-            setIsAdmin(false);
-            setChecking(false);
-            return;
-        }
-
-        if (isAdminUser(user)) {
-            setIsAdmin(true);
+            setRole(null);
             setChecking(false);
             return;
         }
@@ -42,10 +23,13 @@ export function useAdmin() {
             try {
                 const snap = await getDoc(doc(db, 'usuarios', user.uid));
                 if (!cancelled) {
-                    setIsAdmin(snap.exists() && snap.data()?.rol === 'admin');
+                    const data = snap.data();
+                    const isAdminUser =
+                        data?.role === 'admin' || data?.rol === 'admin';
+                    setRole(isAdminUser ? 'admin' : data?.role ?? data?.rol ?? 'client');
                 }
             } catch {
-                if (!cancelled) setIsAdmin(false);
+                if (!cancelled) setRole('client');
             } finally {
                 if (!cancelled) setChecking(false);
             }
@@ -56,12 +40,12 @@ export function useAdmin() {
         };
     }, [user, authLoading]);
 
-    const canAccessAdmin =
-        isAdmin || (import.meta.env.DEV && Boolean(user));
+    const isAdmin = role === 'admin';
 
     return {
         user,
+        role,
         loading: authLoading || checking,
-        isAdmin: canAccessAdmin,
+        isAdmin,
     };
 }

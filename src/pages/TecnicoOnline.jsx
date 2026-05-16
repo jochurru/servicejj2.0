@@ -6,6 +6,7 @@ import { serviceApi } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import PageHero from '../components/ui/PageHero';
 import { FadeIn } from '../components/ui/FadeIn';
+import TicketQR from '../components/common/TicketQR';
 
 const STEPS = ['Tus datos', 'El equipo', 'Falla y fotos'];
 
@@ -16,6 +17,7 @@ const TecnicoOnline = () => {
     nombre: '', telefono: '', email: '', equipo: '', modelo: '', falla: '', fotos: [], aceptaTerminos: false,
   });
   const [loading, setLoading] = useState(false);
+  const [ticketCreado, setTicketCreado] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -52,9 +54,15 @@ const TecnicoOnline = () => {
       formData.fotos.forEach((foto) => dataParaEnviar.append('fotos', foto.file));
 
       const response = await serviceApi.createPedido(dataParaEnviar);
+      setTicketCreado({
+        idCorto: response.idCorto,
+        qrUrl: response.qrUrl,
+        qrContenido: response.qrContenido,
+        equipo: formData.equipo,
+      });
       Swal.fire({
         title: '¡Pedido recibido!',
-        html: `<p class="text-sm">Tu ticket de seguimiento:</p><p class="text-2xl font-bold mt-2">${response.idCorto}</p>`,
+        html: `<p class="text-sm">Tu ticket: <strong>${response.idCorto}</strong></p><p class="text-xs text-zinc-500 mt-2">Guardá el QR para consultar el estado en cualquier momento.</p>`,
         icon: 'success',
         confirmButtonColor: '#000',
       });
@@ -179,6 +187,17 @@ const TecnicoOnline = () => {
               )}
             </div>
           </form>
+
+          {ticketCreado && (
+            <div className="mt-12">
+              <TicketQR
+                idCorto={ticketCreado.idCorto}
+                equipo={ticketCreado.equipo}
+                qrUrl={ticketCreado.qrUrl}
+                qrContenido={ticketCreado.qrContenido}
+              />
+            </div>
+          )}
         </FadeIn>
       </section>
     </div>
